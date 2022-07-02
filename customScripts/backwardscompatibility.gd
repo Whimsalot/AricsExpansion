@@ -135,9 +135,13 @@ func backwardsCompatibility(person):
 	if person.vagina != "none" && person.lubrication == -1:
 		person.lubrication = round(rand_range(1,4))
 
+	#Add Stomach
+	if !person.cum.has('stomach'):
+		person.cum.stomach = 0
+
 	if !person.consentexp.has('livestock'):
 		person.consentexp['livestock'] = false
-	
+
 	#Racial Bonuses
 	if !person.stats.has('cour_racial'):
 		person.stats['cour_racial'] = 0
@@ -152,6 +156,43 @@ func backwardsCompatibility(person):
 	for i in ['Movement: Walking','Movement: Flying','Movement: Crawling','Movement: Immobilized']:
 		if person.traits.has(i):
 			person.trait_remove(i)
+	
+	#Genealogy Changes
+	if !person.genealogy.has('ogre'):
+		person.genealogy['ogre'] = 0
+	if !person.genealogy.has('giant'):
+		person.genealogy['giant'] = 0
+	if !person.genealogy.has('kobold'):
+		person.genealogy['kobold'] = 0
+	if !person.genealogy.has('lizardfolk'):
+		person.genealogy['lizardfolk'] = 0
+	if !person.genealogy.has('avali'):
+		person.genealogy['avali'] = 0
+	if !person.genealogy.has('hyena'):
+		person.genealogy['hyena'] = 0
+	if !person.genealogy.has('mouse'):
+		person.genealogy['mouse'] = 0
+	if !person.genealogy.has('squirrel'):
+		person.genealogy['squirrel'] = 0
+	if !person.genealogy.has('otter'):
+		person.genealogy['otter'] = 0
+	if !person.genealogy.has('bird'):
+		person.genealogy['bird'] = 0
+
+	#Flaws to Vices
+	if !person.mind.has('vice'):
+		person.mind['vice'] = "none"
+	if !person.mind.has('vice_known'):	
+		person.mind['vice_known'] = false
+	if !person.mind.has('vice_presented'):
+		person.mind['vice_presented'] = false
+	if !person.mind.has('vice_removed'):
+		person.mind['vice_removed'] = false
+		
+	if person.mind.flaw != 'none':
+		person.mind.vice = person.mind.flaw
+		person.mind.vice_removed = person.mind.flawless
+		person.mind.vice_known = person.flawknown
 	
 	#---Only Activate if Mandatory for Compatibility
 #	if person.expansionversion < globals.expansionsettings.modversion:

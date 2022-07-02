@@ -10,7 +10,7 @@ func chooseability(ability):
 	var text = ''
 	var confirmbutton = get_node("trainingabilspanel/abilityconfirm")
 	###---Added by Expansion---### Racial Abilities
-	var dict = {'sstr': 'Strength', 'sagi' : 'Agility', 'smaf': 'Magic', 'level': 'Level', 'race': 'Primary Race'}
+	var dict = {'sstr': 'Strength', 'sagi' : 'Agility', 'smaf': 'Magic', 'level': 'Level', 'race': 'Primary Race', 'spec': 'Spec'}
 	###---End Expansion---###
 	for i in get_node("trainingabilspanel/ScrollContainer/VBoxContainer").get_children():
 		if i.get_text() != ability.name:
@@ -44,6 +44,12 @@ func chooseability(ability):
 				text += '[color=#ff4949]'+dict[i] + ': ' + str(ability.reqs[i]) + '[/color], '
 			else:
 				text += '[color=green]'+dict[i] + ': ' + str(ability.reqs[i]) + '[/color], '
+		elif typeof(ability.reqs[i]) == TYPE_ARRAY: # Capitulize - Specialization based abilities 
+			if !ability.reqs[i].has(ref):
+				confirmbutton.set_disabled(true)
+				text += '[color=#ff4949]'+dict[i] + ': ' + str(ability.reqs[i]) + '[/color], '
+			else:
+				text += '[color=green]'+dict[i] + ': ' + str(ability.reqs[i]) + '[/color], ' # /Capitulize: Fix this someday ugh
 		elif ref < ability.reqs[i]:
 			confirmbutton.set_disabled(true)
 		###---End Expansion---###
@@ -75,10 +81,21 @@ func chooseability(ability):
 			text += person.dictionary('\n[color=#ff4949]You must purchase this spell before you will be able to teach it others. [/color]')
 	get_node("trainingabilspanel/abilitytext").set_bbcode(text)
 
+func updateSprites(person):
+	var sprite = []
+	if nakedspritesdict.has(person.unique) && person.imageportait == globals.characters.characters[person.unique].get('imageportait','') && person.imagetype != 'naked':
+		if person.obed >= 50 || person.stress < 10:
+			sprite.append([nakedspritesdict[person.unique].clothcons, 'slave', 'opac'])
+		else:
+			sprite.append([nakedspritesdict[person.unique].clothrape, 'slave', 'opac'])
+	elif person.imagefull != null:
+		sprite.append([person.imagefull,'slave','opac'])
+	if globals.player.imagefull != null:
+		sprite.append([globals.player.imagefull,'player','opac'])
+	return sprite
 
 func _on_talk_pressed(mode = 'talk'):
 	var state = true
-	var sprite = []
 	var buttons = []
 	var text = ''
 
@@ -98,17 +115,6 @@ func _on_talk_pressed(mode = 'talk'):
 	elif person.unique == 'Ayda' && globals.state.sidequests.ayda in [9,12,15]:
 		globals.events.aydapersonaltalk()
 		return
-	###---Added by Expansion---### Ank BugFix v4a || Naked Image Modification by Deviate
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
 	if mode == 'talk':
 		###---Added by Expansion---###
 		text = str(expansion.getLocation(person)) + " " + str(expansion.getIntro(person))
@@ -134,7 +140,7 @@ func _on_talk_pressed(mode = 'talk'):
 		#Discover Pregnancy Event
 		if person.dailytalk.has('currentpregnancy'):
 			text += "$He is holding $his " +expansion.nameBelly()+ " with a shy smile.\n\n[color=yellow]" + person.quirk("-$master, I have some news. I think it's good news![/color]\n")
-			buttons.append({text = person.dictionary(str(globals.randomitemfromarray(["What is your news, $name?","$name, what is it?","Does your stomach hurt?"]))), function = 'eventPregnancyReveal', args = 'introtold', tooltip = person.dictionary("What is $his news?")})
+			buttons.append({text = person.dictionary(str(globals.randomitemfromarray(["What is your news, $name?","$name, what is it?","Does your stomach hurt?"]))), function = 'eventPregnancyReveal', args = 'introtold', textcolor = 'green', tooltip = person.dictionary("What is $his news?")})
 		elif !person.knowledge.has('currentpregnancy') && person.preg.duration > 0:
 			if person.mind.secrets.has('currentpregnancy'):
 				text += "You notice that $he is trying to casually keep $his arms or hands over $his " +expansion.nameBelly()+ " as though to block your view of it.\n"
@@ -197,8 +203,8 @@ func _on_talk_pressed(mode = 'talk'):
 			buttons.append({text = 'So you are okay with incest now, ' + person.dictionary(" $name?"), function = 'eventIncestConsentRemoved', args = 'intro', tooltip = "Respond to her mentioning Incest."})
 
 		###Jail Content Alert
-		if person.sleep == 'jail' && !person.dailytalk.has('aricjailalert'):
-			person.dailytalk.append('aricjailalert')
+		if person.sleep == 'jail' && !globals.player.dailytalk.has('aricjailalert'):
+			globals.player.dailytalk.append('aricjailalert')
 			text += "\n[color=red]Aric's Note: Jail Dialogue Content Coming Soon![/color]\n"
 
 #		if person.obed < 50:
@@ -261,9 +267,15 @@ func _on_talk_pressed(mode = 'talk'):
 		#Consent Topics (Valid for All)
 #		buttons.append({text = person.dictionary("I want to ask you something"), function = 'consent', args = 'intro'})
 
-		#Quick Strip Option
-		if (person.exposed.chest == false || person.exposed.genitals == false || person.exposed.ass == false) && person.obed >= 50:
-			buttons.append({text = person.dictionary("Strip Immediately!"), function = 'topicclothing', args = 'full strip', tooltip = "Remove all Clothing"})		
+		#Quick Strip Option (Unneeded with Toggle?)
+#		if (person.exposed.chest == false || person.exposed.genitals == false || person.exposed.ass == false) && person.obed >= 50:
+#			buttons.append({text = person.dictionary("Strip Immediately!"), function = 'topicclothing', args = 'full strip', tooltip = "Remove all Clothing"})		
+
+		#Succubus Talk Options	#ralphC
+		if person.race_display == 'Succubus':
+			#buttons.append({text = str(globals.randomitemfromarray(['General Slave Topics','General Slave Matters','General Slave Issues'])), function = '_on_talk_pressed', args = 'general_slave_topics', tooltip = "General topics for all slaves such as changing the Master Name, Releasing the Slave, etc"})
+			buttons.append({text = person.dictionary("Lets talk about your hunger."), function = 'succubustopics', args = 'intro'})
+		#/ralphC
 
 	#General Slave Topics
 	elif mode == 'general_slave_topics':
@@ -291,7 +303,7 @@ func _on_talk_pressed(mode = 'talk'):
 	#---Number of Children---#
 	elif mode == 'general_slave_topics_numberofkids':
 		person.dailytalk.append('desiredoffspring')
-		if rand_range(0,100) <= (person.loyal*.5) + (person.obed*.25) + rand_range(0,25):
+		if rand_range(0,100) <= (person.loyal*.25) + (person.obed*.25) + (globals.fetishopinion.find(person.fetish.pregnancy) * 5) + rand_range(0,25) || checkEntrancement() == true:
 			person.knowledge.append('desiredoffspring')
 			text = str(expansion.getIntro(person)) + " $name thinks for a moment.\n[color=yellow]-"+ person.quirk('I think...about ' +str(person.pregexp.desiredoffspring)+ ' would be nice.')
 			buttons.append({text = str(globals.randomitemfromarray(['More is better','That is not enough','I would say to have more',"Isn't more better?"])), function = '_on_talk_pressed', args = 'general_slave_topics_morekids', tooltip = person.dictionary("Encourage $name to have more kids.")})
@@ -310,9 +322,10 @@ func _on_talk_pressed(mode = 'talk'):
 		difference = round(((person.pregexp.desiredoffspring-(person.metrics.birth*1.35)) + person.instinct.reproduce)*.5)
 		difference = clamp(difference,.5,3)
 		#Add checkReaction
-		if person.checkFetish('pregnancy',difference):
+		if person.checkFetish('pregnancy', difference) && rand_range(0,100) <= 75|| checkEntrancement() == true:
 			person.pregexp.desiredoffspring += 1
 			text = str(expansion.getIntro(person)) + " $name thinks for a moment.\n[color=yellow]-"+ person.quirk('I suppose more would be nice. Maybe '+str(person.pregexp.desiredoffspring)+ '?')
+			text += usedEntrancement()
 		else:
 			text = str(expansion.getIntro(person)) + " $name thinks for a moment.\n[color=yellow]-"+ person.quirk('No...no...'+str(person.pregexp.desiredoffspring)+ ' is plenty.')
 		buttons.append({text = str(globals.randomitemfromarray(['Go Back','Return','Previous Menu'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
@@ -320,16 +333,17 @@ func _on_talk_pressed(mode = 'talk'):
 		difference = round((person.loyal - ((person.pregexp.desiredoffspring-person.metrics.birth) + person.instinct.reproduce))*.1)
 		difference = clamp(difference,.5,3)
 		#Add checkReaction
-		if person.checkFetish('pregnancy',difference):
+		if person.checkFetish('pregnancy',difference) && rand_range(0,100) <= 75 || checkEntrancement() == true:
 			person.pregexp.desiredoffspring -= 1
 			if person.pregexp.desiredoffspring < 0:
 				person.pregexp.desiredoffspring = 0
 			text = str(expansion.getIntro(person)) + " $name thinks for a moment.\n[color=yellow]-"+ person.quirk('I suppose less would be less stressful. Maybe '+str(person.pregexp.desiredoffspring)+ '?')
+			text += usedEntrancement()
 		else:
 			text = str(expansion.getIntro(person)) + " $name thinks for a moment.\n[color=yellow]-"+ person.quirk('No...no...'+str(person.pregexp.desiredoffspring)+ ' is what I want.')
 		buttons.append({text = str(globals.randomitemfromarray(['Go Back','Return','Previous Menu'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	#---Number of Children End---#
-	
+	#---Number of Children End---#	
+	#---Jobskills
 	elif mode == 'general_slave_topics_jobskills':
 		var firstskill = true
 		if person.sleep != 'jail':
@@ -399,7 +413,7 @@ func _on_talk_pressed(mode = 'talk'):
 			text += "\n\n[color=#d1b970][center]Known Fetishes[/center][/color]\n"
 			for fetish in person.knownfetishes:
 				var fetishname = globals.expansion.getFetishDescription(str(fetish))
-				text += fetishname.capitalize() + ": " + "[color=aqua]" + str(person.fetish[fetish].capitalize())+ "[/color]\n"
+				text += fetishname.capitalize() + ": " + globals.fastif(globals.fetishopinion.find(person.fetish[fetish]) >= 3,"[color=green]", "[color=red]") + str(person.fetish[fetish].capitalize())+ "[/color]\n"
 		#Undiscovered Trait Fetishes
 		if person.dailytalk.has('hint_dominance') || person.dailytalk.has('hint_submissive') || person.dailytalk.has('hint_sadism') || person.dailytalk.has('hint_masochism'):
 			text += "\n\n[color=#d1b970][center]Undiscovered Trait[/center][/color]"
@@ -407,14 +421,23 @@ func _on_talk_pressed(mode = 'talk'):
 				text += "\nYou get the feeling that $name may feel strongly about [color=aqua]Control[/color]."
 			if person.dailytalk.has('hint_sadism') || person.dailytalk.has('hint_masochism'):
 				text += "\nYou get the feeling that $name may feel strongly about [color=aqua]Pain[/color]."
-		
-		if !person.dailytalk.has('eventDrainCum'):
-			if person.cum.pussy > 0 || !person.preg.womb.empty():
-				var cumtrail = str(globals.randomitemfromarray(['a small, white glob of ','a trail of ','something that looks like ','what might be ']))
-				var ooze = str(globals.randomitemfromarray(['ooze','spurt','drip','fall','squelch','trickle']))
-				text += "\n\nYou see " + cumtrail + " of " + str(globals.expansion.nameCum()) + " " + ooze + " onto $his leg from $his " + str(globals.expansion.namePussy()) + ". "
-				buttons.append({text = 'I want you to drain your pussy of that cum.', function = 'eventDrainCum', args = 'intropussy', tooltip = "Order $him to drain the cum from $his pussy -Available Once per Day"})
-		
+
+		if person.cum.pussy > 0 || !person.preg.womb.empty():
+			var cumtrail = str(globals.randomitemfromarray(['a small, white glob of ','a trail of ','something that looks like ','what might be ']))
+			var ooze = str(globals.randomitemfromarray(['ooze','spurt','drip','fall','squelch','trickle']))
+			text += "\n\nYou see " + cumtrail + " of " + str(globals.expansion.nameCum()) + " " + ooze + " onto $his leg from $his " + str(globals.expansion.namePussy()) + ". "
+			if globals.expansionsettings.perfectinfo == true:
+				text += "\n[color=#d1b970]Loads = " + str(person.cum.pussy) + "[/color]"
+			buttons.append({text = 'I want you to drain your pussy of that cum.', function = 'eventDrainCum', args = 'intropussy', tooltip = person.dictionary("Order $him to drain the cum from $his pussy")})
+
+		if person.cum.ass > 0 :
+			var cumtrail = str(globals.randomitemfromarray(['a small, white glob of ','a trail of ','something that looks like ','what might be ']))
+			var ooze = str(globals.randomitemfromarray(['ooze','spurt','drip','fall','squelch','trickle']))
+			text += "\n\nYou see " + cumtrail + " of " + str(globals.expansion.nameCum()) + " " + ooze + " onto $his leg from $his " + str(globals.expansion.nameAsshole()) + ". "
+			if globals.expansionsettings.perfectinfo == true:
+				text += "\n[color=#d1b970]Loads = " + str(person.cum.ass) + "[/color]"
+			buttons.append({text = 'I want you to drain your ass of that cum.', function = 'eventDrainCum', args = 'introass', tooltip = person.dictionary("Order $him to drain the cum from $his ass")})
+
 		#Unlock Sexuality Knowledge
 		if !person.knowledge.has('sexuality'):
 			buttons.append({text = str(globals.randomitemfromarray(['How do you identify sexually?','What gender turns you on?','What is your sexuality?'])), function = 'oneperdayconvos', args = 'sexuality', tooltip = person.dictionary("Ask about $name's sexuality. -Available Once per Day")})
@@ -480,7 +503,7 @@ func _on_talk_pressed(mode = 'talk'):
 		buttons.append({text = "Return", function = '_on_talk_pressed'})
 	elif mode == 'sexpunish':
 		buttons.append({text = "Return", function = '_on_talk_pressed', args = 'punish'})
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -508,49 +531,28 @@ func _on_callconfirm_pressed():
 
 #Rename Slave
 var pending_slave_rename = ""
+var dictNameParts = {'name': "First name", 'surname': "Last name", 'nickname': "Nickname"}
 
 func slave_rename_hub(mode = ''):
 	var state = true
-	var sprite = []
 	var buttons = []
 	var text = ""
 	if mode == 'intro':
 		text = str(expansion.getIntro(person)) + "\n[color=yellow]-"+ person.quirk(str(talk.introGeneral(person))) + "[/color]\n\nWhich name would you like to change?"
-		buttons.append({text = "Your First name is now...", function = 'slave_rename_hub', args = 'first', tooltip = "Change the slave's first name."})
-		buttons.append({text = "Your Last name is now...", function = 'slave_rename_hub', args = 'surname', tooltip = "Change the slave's last name."})
-		buttons.append({text = "Your Nickname is now...", function = 'slave_rename_hub', args = 'nickname', tooltip = "Change the slave's nickname. Same as in Customize Slave."})
-	elif mode == 'first':
+		buttons.append({text = "Your First name is now...", function = 'slave_rename_hub', args = 'name', tooltip = "Change the slave's First name."})
+		buttons.append({text = "Your Last name is now...", function = 'slave_rename_hub', args = 'surname', tooltip = "Change the slave's Last name."})
+		buttons.append({text = "Your Nickname is now...", function = 'slave_rename_hub', args = 'nickname', tooltip = "Change the slave's Nickname. Same as in Customize Slave."})
+	elif mode in dictNameParts:
 		get_node("slaverename").popup()
-		get_node("slaverename/Label").set_text(person.dictionary("What should $name's new First name be? It is currently " + str(person.name)))
-		get_node("slaverename/LineEdit").set_text(person.name)
-		pending_slave_rename = "first"
-	elif mode == 'surname':
-		get_node("slaverename").popup()
-		get_node("slaverename/Label").set_text(person.dictionary("What should $name's new Last name be? It is currently " + str(person.surname)))
-		get_node("slaverename/LineEdit").set_text(person.surname)
-		pending_slave_rename = "surname"
-	elif mode == 'nickname':
-		get_node("slaverename").popup()
-		get_node("slaverename/Label").set_text(person.dictionary("What should $name's new Nickname be? It is currently " + str(person.nickname)))
-		get_node("slaverename/LineEdit").set_text(person.nickname)
-		pending_slave_rename = "nickname"
+		get_node("slaverename/Label").set_text(("What should "+ person.name_short() +"'s new "+ dictNameParts[mode] +" be? It is currently " + str(person[mode])))
+		get_node("slaverename/LineEdit").set_text(person[mode])
+		pending_slave_rename = mode
 	
 	#Return Buttons`
 	if mode != "intro":
 		buttons.append({text = "Regarding another of your names...", function = 'slave_rename_hub', args = 'intro', tooltip = "Change another part of the slave's name."})
 	buttons.append({text = str(globals.randomitemfromarray(['Go Back','Return','Previous Menu'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -558,15 +560,11 @@ func _on_slaverename_pressed():
 	get_node("slaverename").visible = false
 	var text = "You demand that $he accept this as $his new name. "
 	text += "$name " + str(expansion.getExpression(person)) + " at you and says\n" + person.quirk("[color=yellow]-" + str(globals.randomitemfromarray(['As you wish','As you command','Fine','Alright','If that is your wish'])) + ", $master.[/color]")
-	if pending_slave_rename == "first":
-		person.name = get_node("slaverename/LineEdit").get_text()
+	if pending_slave_rename in dictNameParts:
+		person[pending_slave_rename] = get_node("slaverename/LineEdit").get_text()
 		pending_slave_rename = ""
-	elif pending_slave_rename == "surname":
-		person.surname = get_node("slaverename/LineEdit").get_text()
-		pending_slave_rename = ""
-	elif pending_slave_rename == "nickname":
-		person.nickname = get_node("slaverename/LineEdit").get_text()
-		pending_slave_rename = ""
+	if globals.state.relativesdata.has(person.id):
+		globals.state.relativesdata[person.id].name = person.name_long()
 	get_tree().get_current_scene().close_dialogue()
 	get_tree().get_current_scene().popup(person.dictionary(text))
 
@@ -575,7 +573,6 @@ func eventPregnancyReveal(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	
 	#Intro + Player Choice
@@ -613,6 +610,8 @@ func eventPregnancyReveal(mode=''):
 		else:
 			text = str(expansion.getIntro(person)) + " $name lets out a small whimper.\n[color=yellow]-"+ person.quirk("Please, $master, no! I'm so scared about having this baby! Don't force me to keep having them!") + "[/color]"
 	if mode == 'lewd':
+		for fetup in ['creampiepussy','pregnancy']:
+			person.checkFetish(fetup, 2)
 		if expansion.getResponse(person,mode) == "positive":
 			text += " $name bites $his lower lip at your response.\n[color=yellow]-"+ person.quirk("I HAVE been really horny lately.") + "[/color]\n"
 		else:
@@ -622,18 +621,7 @@ func eventPregnancyReveal(mode=''):
 	if !mode in ['introtold','introdiscovered']:
 		buttons.append({text = str(globals.randomitemfromarray(['Anyways, like we were saying','As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main talk screen."})
 
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -641,7 +629,6 @@ func eventLactation(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	
 	#Intro + Player Choice
@@ -692,6 +679,8 @@ func eventLactation(mode=''):
 		else:
 			text = str(expansion.getIntro(person)) + " $name lets out a small whimper.\n[color=yellow]-"+ person.quirk("Please, $master, anything but that! I've seen what that does to $child before and please no! They lose their minds, they start mooing! Please, $master!") + "[/color]"
 	if mode == 'lewd':
+		for fetup in ['drinkmilk','lactation','bemilked']:
+			person.checkFetish(fetup, 2)
 		if expansion.getResponse(person,mode) == "positive":
 			text += " $name bites $his lower lip at your response.\n[color=yellow]-"+ person.quirk("You...you're into it? I think I may be too!") + "[/color]\n"
 			text += "$He runs $his finger along $his erect nipple and brings back a droplet of milk to $his own lips, then licks it off."
@@ -703,18 +692,7 @@ func eventLactation(mode=''):
 	if !mode in ['introtold','introdiscovered']:
 		buttons.append({text = str(globals.randomitemfromarray(['Anyways, like we were saying','As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main talk screen."})
 
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -722,7 +700,6 @@ func eventWantedPregnancy(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	#Intro + Player Choice
 	if mode == 'intro':
@@ -747,6 +724,8 @@ func eventWantedPregnancy(mode=''):
 		else:
 			text = str(expansion.getIntro(person)) + " $name seems disheartened by your response.\n[color=yellow]-"+ person.quirk("Oh. I'm sorry for saying anything, $master. It...it won't happen again.") + "[/color]"
 	if mode == 'lewd':
+		for fetup in ['creampiepussy','pregnancy']:
+			person.checkFetish(fetup, 2)
 		if expansion.getResponse(person,mode) == "positive":
 			text += " $name bites $his lower lip at your response.\n[color=yellow]-"+ person.quirk("It really was, $master! I can't wait to do that again!") + "[/color]"
 		else:
@@ -754,18 +733,7 @@ func eventWantedPregnancy(mode=''):
 	#Return after Choice
 	if mode != 'intro':
 		buttons.append({text = str(globals.randomitemfromarray(['As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main talk screen."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -773,7 +741,6 @@ func eventIncestConsentGiven(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	#Intro + Player Choice
 	if mode == 'intro':
@@ -794,6 +761,8 @@ func eventIncestConsentGiven(mode=''):
 		else:
 			text = str(expansion.getIntro(person)) + " $name seems disheartened by your response.\n[color=yellow]-"+ person.quirk("Oh. I see. Well, I mean...nevermind, I guess. Forget I said anything.") + "[/color]"
 	if mode == 'lewd':
+		for fetup in ['incest']:
+			person.checkFetish(fetup, 3)
 		if expansion.getResponse(person,mode) == "positive":
 			person.consentexp.incest = true
 			text += str(expansion.getIntro(person)) + " $name bites $his lower lip at your response.\n[color=yellow]-"+ person.quirk("You are right about that, $master! I can't wait to try it!") + "[/color]"
@@ -802,18 +771,7 @@ func eventIncestConsentGiven(mode=''):
 	#Return after Choice
 	if mode != 'intro':
 		buttons.append({text = str(globals.randomitemfromarray(['As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main talk screen."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -821,7 +779,6 @@ func eventIncestConsentRemoved(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	#Intro + Player Choice
 	if mode == 'intro':
@@ -850,18 +807,7 @@ func eventIncestConsentRemoved(mode=''):
 	#Return after Choice
 	if mode != 'intro':
 		buttons.append({text = str(globals.randomitemfromarray(['As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main talk screen."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -871,7 +817,6 @@ func thecrystal(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	var blockreturn = false
 	
@@ -923,18 +868,7 @@ func thecrystal(mode=''):
 	#Return after Choice
 	if blockreturn == false:
 		buttons.append({text = str(globals.randomitemfromarray(['Nothing. Lets go back.'])), function = '_on_talk_pressed', tooltip = "Return to the main Talk screen."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -942,7 +876,6 @@ func crystalimmortalitytoggle(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	var finish = false
 	#Intro + Player Choice
@@ -980,18 +913,7 @@ func crystalimmortalitytoggle(mode=''):
 	#Return after Choice
 	if finish == true:
 		buttons.append({text = str(globals.randomitemfromarray(['As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main Talk screen."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -999,7 +921,6 @@ func crystalconsequences(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var moodmod = 0
 	if mode == 'save':
 		text += "You rush forward and pull $him back with all of your might. $He slips to the ground in your arms and falls unconscious as the tendrils ooze out of $his fingernails and vanish into the air.\n\n[color=red]$name will awaken, but it will take some time for $his soul to recover from $his experience with the Crystal.[/color]"
@@ -1037,18 +958,7 @@ func crystalconsequences(mode=''):
 		return
 	#Return after Choice
 #	buttons.append({text = str(globals.randomitemfromarray(['As we were saying...'])), function = '_on_talk_pressed', tooltip = "Return to the main Talk screen."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1057,7 +967,6 @@ func headgirltopics(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	#Intro Text
 	text = str(expansion.getIntro(person)) + "\n[color=yellow]-"+ person.quirk(str(talk.introGeneral(person))) + "[/color]"
@@ -1073,18 +982,7 @@ func headgirltopics(mode=''):
 		buttons.append({text = person.dictionary("Remove the Crystal's hold on Death."), function = 'crystalimmortalitytoggle', args = 'disable', tooltip = "Re-enable death inside of your Mansion."})
 	
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1092,9 +990,8 @@ func pregspeedchange(mode = ''):
 	var text = ''
 	var state = false
 	var buttons = []
-	var sprite = []
 	if mode == 'start':
-		text = '[color=green]$name[/color] stands in front of you holding an arcane rune tied to the Mansion and the dimensional crystals below it.\n[color=yellow]-' + person.quirk('It currently takes [color=green]' + str(variables.pregduration) + '[/color] days to fully grow a baby for the average slave right now. Do you have an issue with the current speed of pregnancy, $master? I can adjust the dimensional crystal chamber in the mansion to speed up or slow down the natural growth of babies in wombs while in the mansion, though that will not change the added speed that traits may provide or the speed increases of [color=aqua]Induction Potions[/color]. Would you like me to do that?[/color]\n\n') + 'You think for a moment.'
+		text = '[color=green]$name[/color] stands in front of you holding an arcane rune tied to the Mansion and the dimensional crystals below it.\n[color=yellow]-' + person.quirk('It currently takes [color=green]' + str(globals.state.pregduration) + '[/color] days to fully grow a baby for the average slave right now. Do you have an issue with the current speed of pregnancy, $master? I can adjust the dimensional crystal chamber in the mansion to speed up or slow down the natural growth of babies in wombs while in the mansion, though that will not change the added speed that traits may provide or the speed increases of [color=aqua]Induction Potions[/color]. Would you like me to do that?[/color]\n\n') + 'You think for a moment.'
 		buttons.append({text = person.dictionary("It's good as it is now"), function = '_on_talk_pressed'})
 		if globals.state.mansionupgrades.dimensionalcrystal >= 2:
 			buttons.append({text = person.dictionary("I want girls giving birth as soon as my dick leaves them."), function = 'pregspeedchange', args = 'instant', tooltip = "This may break the game and will certainly break immersion."})
@@ -1110,58 +1007,47 @@ func pregspeedchange(mode = ''):
 		buttons.append({text = person.dictionary("I play this for the realism. The full 9 months."), function = 'pregspeedchange', args = 'ninemonths', tooltip = "You are unlikely to see an offspring and possibly never will see any slaves pregnant over the course of a normal game. It may be easier to use contraception."})
 	if mode == 'instant':
 		text = 'You smile leeringly at $name.\n[color=yellow]-Instant. Birth.[/color]\n\n$name shivers slightly at the thought of $his body splitting open to give birth in one day.\n[color=yellow]-Yes...$master. This is pretty much cheat mode, $master, and you will negate a lot of game features this way.[/color]\n$He runs off to do your will and returns a few minutes later.\n[color=yellow]-It is done, $master.[/color]'
-		variables.pregduration = 0
+		globals.state.pregduration = 0
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'threeday':
 		text = 'You smile at $name.\n[color=yellow]-Three days should be plenty.[/color]\n\n$name shivers slightly at the thought of the growing pains crammed into three days.\n[color=yellow]-Yes...$master. You understand most of your girls who have sex will never be able to do anything, right?[/color]\n$He runs off to do your will.\n[color=yellow]-It is done, $master.[/color]'
-		variables.pregduration = 3
+		globals.state.pregduration = 3
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'week':
 		text = 'You smile at $name.\n[color=yellow]-A week should be fine. Lets fill up this mansion.[/color]\n\n$name shivers slightly at the thought of the growing pains crammed into one week.\n[color=yellow]-Yes $master. This may feel fairly fast and have a handful of births daily still.[/color]\n$He runs off to do your will.\n[color=yellow]-It is done, $master.[/color]'
-		variables.pregduration = 7
+		globals.state.pregduration = 7
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'biweekly':
 		text = 'You nod thoughtfully at $name.\n[color=yellow]-Two weeks will allow us to breed our girls steadily while keeping them from not being able to move.[/color]\n\n$name nods cheerfully.\n[color=yellow]-That sounds like a good trade-off of time pregnant to babies birthed.[/color]\n$He runs off to do your will.\n[color=yellow]-It is done, $master.[/color]'
-		variables.pregduration = 14
+		globals.state.pregduration = 14
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'month':
 		text = 'You nod thoughtfully at $name.\n[color=yellow]-The gods of this land decreed a month when creating these crystals. A month it shall be.[/color]\n\n$name nods cheerfully.\n[color=yellow]-Yes, $master, and thus may he be honored, our grand creator.[/color]\n$He runs off to do your will.\n[color=yellow]-It is done, $master. Our god is honored. We should seal it by releasing the next baby born to the wilds in $his name. Surely, he shall bless our crops this harvest![/color]'
-		variables.pregduration = 30
+		globals.state.pregduration = 30
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'monthandahalf':
 		text = 'You nod thoughtfully at $name.\n[color=yellow]-I am in this for the long haul. 45 days.[/color]\n\n$name widens $his eyes at the thought of that long carrying a baby.\n[color=yellow]-Yes...master, if you are sure. You are not going to see many babies however...[/color]\n$He runs off to do your will.\n[color=yellow]-It is done, $master.[/color]'
-		variables.pregduration = 45
+		globals.state.pregduration = 45
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'twomonths':
 		text = 'You nod thoughtfully at $name.\n[color=yellow]-Who cares about babies? I want my girls working. 60 days.[/color]\n\n$name widens $his eyes at the thought of that long carrying a baby.\n[color=yellow]-Yes...master, if you are sure. You are not going to see many babies however...[/color]\n$He runs off to do your will.\n[color=yellow]-It is done, $master.[/color]'
-		variables.pregduration = 60
+		globals.state.pregduration = 60
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 	if mode == 'ninemonths':
 		text = 'You snort and look at $name.\n[color=yellow]-I want the immersion, and naturally babies grow in nine months. So nine months it is. Make it nine, and nine it shall be. Do it, plebian![/color]\n\n$name faints in terror, for the thought of a full term pregnancy in this land has all but been forgotten. Eventually, $he comes to.\n[color=yellow]-$master, surely not? Truely, this is your wish? We...we shall have no babies. We shall see nary a one.[/color]\n$He runs off to do your will while sobbing hysterically.\n[color=yellow]-It is done, $master. As...nature...intended....[/color]'
-		variables.pregduration = 270
+		globals.state.pregduration = 270
 		buttons.append({text = person.dictionary("Good. As we were saying..."), function = '_on_talk_pressed'})
 		buttons.append({text = person.dictionary("On second thought..."), function = 'pregspeedchange', args = 'start'})
 		
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1172,7 +1058,6 @@ func farmmanagertopics(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	#Milking Rack Restraints
 	if mode == 'milkrackson':
@@ -1256,18 +1141,7 @@ func farmmanagertopics(mode=''):
 
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
 	
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1276,7 +1150,6 @@ func oneperdayconvos(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	if mode == "sexuality":
 		person.dailytalk.append('talksexuality')
@@ -1296,18 +1169,7 @@ func oneperdayconvos(mode=''):
 		buttons.append({text = str(globals.randomitemfromarray(['About how many kids you want...','Talk with me about children','About how many children you want to have...'])), function = '_on_talk_pressed', args = 'general_slave_topics_numberofkidsknown', tooltip = "Raise or Lower the number of Children they want to have."})
 	
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1316,23 +1178,21 @@ func talkfetishes(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	var tempbuttons = []
 	#Incomplete Fetish Variables
 	var invalidfetishfound = false
 	var incompletefetishtext = "\n\n\n[color=red]Aric's Note: The following fetishes have no current mechanical value. They may be implemented in the future but were implemented using another, more specific fetish instead. They are only for roleplay purposes at the moment. Any other fetishes that appear are have at least 1 fetish check and provide a mechanical benefit somewhere in the game. [/color]"
-	#ralph7
-	if globals.useRalphsTweaks:
-		var fetishstatus = "\n\n" + person.name + " has the following known fetishes:\n"
-		var textcolor = ""
-		for i in person.knownfetishes:
-			if person.fetish[i] in ['mindblowing','enjoyable']:
-				textcolor = "[color=green]"
-			elif person.fetish[i] in ['acceptable','uncertain']:
-				textcolor = "[color=yellow]"
-			else:
-				textcolor = "[color=red]"
-			fetishstatus += str(i).capitalize() + ": " + textcolor + person.fetish[i].capitalize() + "[/color]\n"
+	#Added by Ralph
+	var fetishstatus = "\n\n" + person.name + " has the following known fetishes:\n"
+	var textcolor = ""
+	for i in person.knownfetishes:
+		if person.fetish[i] in ['mindblowing','enjoyable']:
+			textcolor = "[color=green]"
+		elif person.fetish[i] in ['acceptable','uncertain']:
+			textcolor = "[color=yellow]"
+		else:
+			textcolor = "[color=red]"
+		fetishstatus += str(i).capitalize() + ": " + textcolor + person.fetish[i].capitalize() + "[/color]\n"
 	#/ralph7
 	
 	#The Fetish Response
@@ -1349,7 +1209,7 @@ func talkfetishes(mode=''):
 		else:
 			#Resistance Check
 			person.knownfetishes.append(mode)
-			if person.checkFetish(mode, 3):
+			if person.checkFetish(mode, 3) || checkEntrancement() == true:
 				person.dailytalk.append(mode)
 				if str(person.fetish[mode]) == 'mindblowing':
 					text = person.quirk("[color=yellow]-Oh, " + fetishname + "?! I absolutely love " + fetishname + "! It is absolutely " + str(person.fetish[mode]).capitalize() + "!!![/color]")
@@ -1370,7 +1230,7 @@ func talkfetishes(mode=''):
 			text += "\n\n[color=#d1b970][center]Known Fetishes[/center][/color]\n"
 			for fetish in person.knownfetishes:
 				fetishname = globals.expansion.getFetishDescription(str(fetish))
-				text += fetishname.capitalize() + ": " + "[color=aqua]" + str(person.fetish[fetish].capitalize())+ "[/color]\n"
+				text += fetishname.capitalize() + ": " + globals.fastif(globals.fetishopinion.find(person.fetish[fetish]) >= 3,"[color=green]", "[color=red]") + str(person.fetish[fetish].capitalize())+ "[/color]\n"
 		for i in globals.fetishesarray:
 			fetishname = globals.expansion.getFetishDescription(str(i))
 			if globals.expansionsettings.unwantedfetishes.empty() == false && i in globals.expansionsettings.unwantedfetishes:
@@ -1393,12 +1253,14 @@ func talkfetishes(mode=''):
 			text += "\n\n[color=#d1b970][center]Known Fetishes[/center][/color]\n"
 			for fetish in person.knownfetishes:
 				fetishname = globals.expansion.getFetishDescription(str(fetish))
-				text += fetishname.capitalize() + ": " + "[color=aqua]" + str(person.fetish[fetish].capitalize())+ "[/color]\n"
+				text += fetishname.capitalize() + ": " + globals.fastif(globals.fetishopinion.find(person.fetish[fetish]) >= 3,"[color=green]", "[color=red]") + str(person.fetish[fetish].capitalize())+ "[/color]\n"
 		for i in globals.fetishesarray:
 			fetishname = globals.expansion.getFetishDescription(str(i))
 			if person.knownfetishes.find(i) >= 0:
-				tempbuttons.append({text = str(globals.randomitemfromarray(['Encourage ','Celebrate ','Condone ']) + fetishname), function = 'talkFetishEncourage', args = str(i), tooltip = person.dictionary("Try to increase $name's " + fetishname + " fetish.")})
-				tempbuttons.append({text = str(globals.randomitemfromarray(['Discourage ','Mock ','Ridicule ']) + fetishname), function = 'talkFetishDiscourage', args = str(i), tooltip = person.dictionary("Try to decrease $name's " + fetishname + " fetish.")})
+				if person.fetish[i] != globals.fetishopinion.back():
+					tempbuttons.append({text = str(globals.randomitemfromarray(['Encourage ','Celebrate ','Condone ']) + fetishname), function = 'talkFetishEncourage', args = str(i), tooltip = person.dictionary("Try to increase $name's " + fetishname + " fetish.")})
+				if person.fetish[i] != globals.fetishopinion[0]:
+					tempbuttons.append({text = str(globals.randomitemfromarray(['Discourage ','Mock ','Ridicule ']) + fetishname), function = 'talkFetishDiscourage', args = str(i), tooltip = person.dictionary("Try to decrease $name's " + fetishname + " fetish.")})
 			
 				#Incomplete Fetish Check
 				if globals.expansion.incompletefetishes.size() > 0:
@@ -1416,7 +1278,7 @@ func talkfetishes(mode=''):
 			text += "\n\n[color=#d1b970][center]Known Fetishes[/center][/color]\n"
 			for fetish in person.knownfetishes:
 				fetishname = globals.expansion.getFetishDescription(str(fetish))
-				text += fetishname.capitalize() + ": " + "[color=aqua]" + str(person.fetish[fetish].capitalize())+ "[/color]\n"	
+				text += fetishname.capitalize() + ": " + globals.fastif(globals.fetishopinion.find(person.fetish[fetish]) >= 3,"[color=green]", "[color=red]") + str(person.fetish[fetish].capitalize())+ "[/color]\n"	
 		#Undiscovered Trait
 		if person.dailytalk.has('hint_dominance') || person.dailytalk.has('hint_submissive') || person.dailytalk.has('hint_sadism') || person.dailytalk.has('hint_masochism'):
 			text += "\n\n[color=#d1b970][center]Undiscovered Trait[/center][/color]"
@@ -1439,18 +1301,7 @@ func talkfetishes(mode=''):
 	if tempbuttons.size() > 0:
 		for i in tempbuttons:
 			buttons.append(i)
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1458,7 +1309,6 @@ func talkFetishEncourage(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	var topic = str(mode)
 	var fetishname = globals.expansion.getFetishDescription(str(mode))
@@ -1466,25 +1316,15 @@ func talkFetishEncourage(mode=''):
 	person.dailytalk.append('talk_change_fetish')
 	person.dailyevents.append(mode)
 	#Resistance Check
-	if person.checkFetish(mode):
+	if person.checkFetish(mode, 0, false) || checkEntrancement() == true:
 		person.setFetish(mode, fetishmod)
 		text = person.quirk("[color=yellow]-You make a good point...I guess that I can admit that " + fetishname + " is " + str(person.fetish[mode]) + ".[/color]")
+		text += usedEntrancement()
 	else:
 		text = person.quirk("[color=yellow]-No. No, I think that " + fetishname + " is " + str(person.fetish[mode]) + ".[/color]")
 	
 	buttons.append({text = str(globals.randomitemfromarray(['As we were saying...','Anyways...','On another note...'])), function = '_on_talk_pressed', tooltip = "Go back to the main conversation."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1492,7 +1332,6 @@ func talkFetishDiscourage(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	var fetishname = globals.expansion.getFetishDescription(str(mode))
 	var fetishmod = -1 *(1+(person.loyal*.01))
@@ -1500,25 +1339,15 @@ func talkFetishDiscourage(mode=''):
 	person.dailyevents.append(mode)
 	
 	#Resistance Check
-	if person.checkFetish(mode):
+	if person.checkFetish(mode, 0, false, false) || checkEntrancement() == true:
 		person.setFetish(mode, fetishmod)
 		text = person.quirk("[color=yellow]-You make a good point. I guess that I can admit that " + fetishname + " is " + str(person.fetish[mode]) + ".[/color]")
+		text += usedEntrancement()
 	else:
 		text = person.quirk("[color=yellow]-No. No, I think that " + fetishname + " is " + str(person.fetish[mode]) + ".[/color]")
 	
 	buttons.append({text = str(globals.randomitemfromarray(['As we were saying...','Anyways...','On another note...'])), function = '_on_talk_pressed', tooltip = "Go back to the main conversation."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1527,7 +1356,6 @@ func talkSexualityShiftToggle(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	if mode == 'lock':
 		person.sexexpanded.sexualitylocked = true
@@ -1546,18 +1374,7 @@ func talkSexualityShiftToggle(mode=''):
 	
 	buttons.append({text = str(globals.randomitemfromarray(['While we are on that topic...'])), function = '_on_talk_pressed', args = 'slave_sex_topics', tooltip = "Go back to the previous screen"})
 	buttons.append({text = str(globals.randomitemfromarray(['As we were saying...','Anyways...','On another note...'])), function = '_on_talk_pressed', tooltip = "Go back to the main conversation."})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1567,7 +1384,6 @@ func eventDrainCum(mode = ''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	var amount = 0
 	var reactions = ['$He moans slightly as $his '+str(globals.expansion.namePussy())+'','$He pushes out with $his '+str(globals.expansion.namePussy())+ ' as it ','$He turns bright red as $he spreads $his ' +str(globals.expansion.namePussy())+' and ']
@@ -1575,8 +1391,6 @@ func eventDrainCum(mode = ''):
 	var landinglocations = ['onto the floor beneath $him.','onto $his squatting thigh before dripping onto the ground below.','all over the ground beneath $his quivering body.']
 	
 	if mode == 'intropussy':
-		person.dailytalk.append('eventDrainCum')
-		puddle = 0
 		text += "[color=aqua]$name[/color] "
 		if person.checkFetish('creampiepussy'):
 			text += "smiles brightly.\n[color=yellow]-"+ person.quirk('Absolutely, I would be happy to $master!') + "[/color]\n\n"
@@ -1591,29 +1405,64 @@ func eventDrainCum(mode = ''):
 			mode = 'pussycum'
 		else:
 			mode = 'pussycumempty'
-		
+
+	if mode == 'introass':
+		text += "[color=aqua]$name[/color] "
+		if person.checkFetish('creampieass'):
+			text += "smiles brightly.\n[color=yellow]-"+ person.quirk('Absolutely, I would be happy to $master!') + "[/color]\n\n"
+		else:
+			text += "turns bright red with embarrassment.\n[color=yellow]-"+ person.quirk('Do...do I have to, $master?') + "[/color]\n\n$He sees your determined face and sighs deeply."
+		#Strip
+		if person.exposed.genitals == false:
+			text += "$He gently removes $his lower garments and places them to the side. "
+		text += "$He squats down and holds $his " + str(globals.expansion.nameAss()) + " cheeks open. "
+		if person.cum.ass > 0:
+			mode = 'asscum'
+		else:
+			mode = 'asscumempty'
+
 	if mode == 'pussycum':
 		if person.cum.pussy > 0:
-			text += str(globals.randomitemfromarray(reactions)) + str(globals.randomitemfromarray(cumdrips)) + str(globals.randomitemfromarray(landinglocations))
+			text += str(globals.randomitemfromarray(reactions)) + str(globals.randomitemfromarray(cumdrips)) + " " + str(globals.randomitemfromarray(landinglocations))
 			amount = clamp(round(rand_range(1,person.cum.pussy/2)),1,person.cum.pussy)
 			person.cum.pussy -= amount
 			puddle += amount
+			if globals.expansionsettings.perfectinfo == true:
+				text += "\n[color=#d1b970]Loads = " + str(person.cum.pussy) + " Puddle = " + str(puddle) + "[/color]"
 			buttons.append({text = str(globals.randomitemfromarray(['Keep going...','Continue','Dont stop draining','Did I say to stop?'])), function = 'eventDrainCum', args = 'pussycum', tooltip = person.dictionary("Order $him to continue")})
 		else:
 			mode = 'pussycumempty'
-	
+
+	if mode == 'asscum':
+		if person.cum.ass > 0:
+			text += str(globals.randomitemfromarray(reactions)) + str(globals.randomitemfromarray(cumdrips)) + " " + str(globals.randomitemfromarray(landinglocations))
+			amount = clamp(round(rand_range(1,person.cum.ass/2)),1,person.cum.ass)
+			person.cum.ass -= amount
+			puddle += amount
+			if globals.expansionsettings.perfectinfo == true:
+				text += "\n[color=#d1b970]Loads = " + str(person.cum.ass) + " Puddle = " + str(puddle) + "[/color]"
+			buttons.append({text = str(globals.randomitemfromarray(['Keep going...','Continue','Dont stop draining','Did I say to stop?'])), function = 'eventDrainCum', args = 'asscum', tooltip = person.dictionary("Order $him to continue")})
+		else:
+			mode = 'asscumempty'
+
 	if mode == 'pussycumempty':
 		text += "$name looks up at you, $his legs spread open revealing $his exposed " +str(globals.expansion.namePussy())+ ". $He pushes and squeezes $his pussy until $his face turns red but nothing else drips out of $him. $He looks up at you, seeking your next decision. "
 		if rand_range(0,1) >= .5:
 			text += "You order $him to check with $his fingers. $He thrusts $his fingers into $himself as deep as they will go and digs around. $His cheeks flush with the embarrassment, humiliation, and excitement as $his fingers probe $his most sensitive spots. $He pulls them out of $himself. You look them over carefully. While they are soaking wet, they don't appear to be wet with semen. "
 		else:
 			text += "You tell $him to lean back and expose $his " +str(globals.expansion.namePussy())+ " so you can easily reach it. You thrust your fingers into $him and dig around, not bothering to be gentle. $His breathing near your ear gets heavier as you drag your fingers through $his soaking pussy. After a moment, you pull your fingers out of $his gaping lips. $He breathes a long sigh of relief as $he turns $his head to hide $his shamefully bright cheeks as you check your fingers. Though wet, $he appears to be empty of semen in $his pussy. "
-		
 		if !person.preg.womb.empty():
 			buttons.append({text = str(globals.randomitemfromarray(['Wash out your womb','Clean it all out','Wash it all clean','You are not getting pregnant. Wash it out.'])), function = 'eventDrainCum', args = 'wombwash', tooltip = person.dictionary("Have $him wash all semen out of $his womb")})
 		elif puddle > 0:
 			buttons.append({text = str(globals.randomitemfromarray(['Wash out your womb','Clean it all out','Wash it all clean','You are not getting pregnant. Wash it out.'])), function = 'eventDrainCum', args = 'cleanpuddle', tooltip = person.dictionary("Have $him wash all semen out of $his womb")})
-	
+
+	if mode == 'asscumempty':
+		text += "$name looks up at you, $his legs spread open revealing $his exposed " +str(globals.expansion.nameAss())+ ". $He pushes and squeezes $his ass until $his face turns red but nothing else drips out of $him. $He looks up at you, seeking your next decision. "
+		if rand_range(0,1) >= .5:
+			text += "You order $him to check with $his fingers. $He thrusts $his fingers into $himself as deep as they will go and digs around. $His cheeks flush with the embarrassment, humiliation, and excitement as $his fingers probe $his most sensitive spots. $He pulls them out of $himself. You look them over carefully. While they are soaking wet, they don't appear to be wet with semen. "
+		else:
+			text += "You tell $him to lean back and expose $his " +str(globals.expansion.nameAss())+ " so you can easily reach it. You thrust your fingers into $him and dig around, not bothering to be gentle. $His breathing near your ear gets heavier as you drag your fingers through $his soaking ass. After a moment, you pull your fingers out of $his gaping hole. $He breathes a long sigh of relief as $he turns $his head to hide $his shamefully bright cheeks as you check your fingers. Though wet, $he appears to be empty of semen in $his ass. "
+
 	if mode == 'wombwash':
 		text += "You go and retrieve a womb-washing canister. You have $him lie on $his back in the puddle of semen. You use the provided speculum to spread and stretch open $his pussy until it is completely gaped. You take the nozzle and tube off of the canister and carefully press it against the tiny hole at the back of $his vagina that you recognize as $his cervix. "
 		text += "With the nozzle firmly pressed against $his cervix, you press the small button on the side of the canister. $He audibly squeals as the nozzle extends a tiny tube into $his incredibly tight, almost fully sealed cervix. $He puts $his hand on $his belly, as though that will stop the discomfort deep inside of $him, as the nozzle breaks through into $his womb. "
@@ -1655,75 +1504,74 @@ func eventDrainCum(mode = ''):
 	else:
 		buttons.append({text = person.dictionary('Force $him to lick up the cum puddle'), function = 'eventDrainCum', args = 'lickuppuddle', tooltip = person.dictionary("Force $him to lick up the puddle - End Event")})
 		buttons.append({text = person.dictionary('Walk away from the cum puddle'), function = 'eventDrainCum', args = 'leavepuddle', tooltip = "Leave the cum puddle for someone else, add to mansion cleaning duties - End Event"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
+
+func getRollText(roll,consent_chance):
+	return "\n\nRolled [color=aqua]" + str(roll) + "[/color] | Consent Chance [color=aqua]" + str(consent_chance) + "[/color]. "+ globals.fastif(roll <= consent_chance, '[color=green]Success[/color]', '[color=red]Failure[/color]') +" "
 
 #Consent Topics
 func talkconsent(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	var related = globals.expansion.relatedCheck(person,globals.player)
-	#Consent for Breeding, Stud, Incest, and Incest Pregnant. POSSIBLY for "Journey With"
-	#Consent to join and fight
+	var consent_chance = 0
+	var roll = 0
+	#Consent to Join Combat Party
 	if mode == "party":
 		person.dailytalk.append('consentparty')
-		var captured = 0
+		#Chance & Roll
+		consent_chance = round(person.metrics.ownership*5 + person.obed*.25 + person.loyal*.5 + person.fear*.25)
+		roll = round(rand_range(0,100))
+		#Modifiers; Captured Effect, Wrath Vice
 		for i in person.effects.values():
 			if i.code == 'captured':
-				captured = i.duration
-		#Replace with Check
-		if rand_range(0,100) <= (person.metrics.ownership*5) + (person.obed*.25) + (person.loyal*.5) + (person.fear*.25) - (captured*20):
+				consent_chance -= i.duration * 25
+		if person.checkVice('wrath'):
+			consent_chance += round(person.cour * .2)
+		#Result
+		if roll <= consent_chance || checkEntrancement() == true:
 			#Add Variable Text
 			text += person.quirk("[color=yellow]-" + str(talk.consentPartyAccept(person)) +"[/color]")
 			person.consentexp.party = true
+			#Reduce Rebellion
+			var reduced_rebellion = false
+			for i in person.effects.values():
+				if i.code == 'captured':
+					i.duration -= clamp(round(rand_range(1,3)), 1, i.duration)
+					reduced_rebellion = true
+			if reduced_rebellion == true:
+				text += "\n\nYou overhear $him whisper quietly to $himself." + person.quirk("\n[color=yellow]-" + str(talk.consentPartyReduceRebellion(person)) +"[/color]") + "\n\n$His [color=aqua]Rebellion[/color] slightly decreased."
+			text += usedEntrancement()
 		else:
+			expansion.updateMood(person,-1)
 			text += person.quirk("[color=yellow]-" + str(talk.consentPartyRefuse(person)) +"[/color]")
+		if globals.expansionsettings.perfectinfo == true:
+			text += getRollText(roll,consent_chance)
 
-	if mode == "sexual":
-		var difficulty =  person.loyal*2 + person.obed + person.lust
-		###---Added by Expansion---### Family Matters - Incest Check
+	elif mode == "sexual":
+		consent_chance = round(person.obed*3 + person.loyal*2 + person.lust - 250)
+		roll = round(rand_range(0,100))
+		if person.effects.has('captured'):
+			consent_chance -= 100
+		###---Sexuality
+		if globals.expansion.getSexualAttraction(person,globals.player) == true:
+			consent_chance += round(rand_range(10,40))
+		else:
+			consent_chance -= round(rand_range(10,40))
+		###---Family Matters; Incest Check
 		person.dailytalk.append('consent')
 		if related != "unrelated" && person.consentexp.incest == false:
 			person.dailytalk.append('consentincest')
 			var incest = (globals.fetishopinion.find(person.fetish.incest)-6) + round(person.dailyevents.count('incest')/4)
-			difficulty += incest*5
-		###---End Expansion---###
-		if person.effects.has('captured'): difficulty -= 80
-		###---Added by Expansion---### Sexuality
-		if globals.expansion.getSexualAttraction(person,globals.player) == true:
-			difficulty += rand_range(5,20)
-		else:
-			difficulty -= rand_range(5,20)
-		###---End Expansion---###
+			consent_chance += incest*10
+		
 		if person.traits.has('Prude'):
-			difficulty -= 5
-		if difficulty <= 100:
-			text += "$He shows a troubled face and rejects your proposal. "
-			###---Added by Expansion---### Incest Check
-			if related != "unrelated" && person.consentexp.incest != true:
-				text += "\n$He looks at you. " + person.quirk("\n[color=yellow]-I just am not " + str(globals.randomitemfromarray(['comfortable with','interested in','ready to','prepared to','okay to'])) + " " + globals.expansion.nameSex() + " my " + str(related) + ". ")
-				person.dailyevents.append('incest')
-				if rand_range(0,5) + person.dailyevents.count('incest') >= 5:
-					text += "\nYou do see a flash of hesitation, however, and think that $he may be coming around to the idea of it. "
-					person.dailyevents.append('incest')
-			else:
-				text += "\n$He looks at you. " + person.quirk("\n[color=yellow]-I just am not " + str(globals.randomitemfromarray(['comfortable with','interested in','ready to','prepared to','okay to'])) + " " + globals.expansion.nameSex() + " you. ")
-		else:
+			consent_chance -= 50
+		if roll <= consent_chance || checkEntrancement() == true:
 			person.lust += 3
 			text += "$He gives you a meek nod.\n[color=yellow]-" + person.quirk("Okay...I will have sex with you. ") + "[/color]"
 			###---Added by Expansion---### Incest Check
@@ -1732,7 +1580,7 @@ func talkconsent(mode=''):
 				person.consentexp.incest = true
 				if person.fetish.incest in ['taboo','dirty','unacceptable']:
 					person.fetish.incest = 'uncertain'
-				text += "\n$He " + str(globals.randomitemfromarray(['whispers','mumbles','quickly says','says','quietly says'])) + " " + person.quirk("\n[color=yellow]-I can not believe I want to " + globals.expansion.nameSex() + " my " + str(related) + ". ")
+				text += "\n$He " + str(globals.randomitemfromarray(['whispers','mumbles','quickly says','says','quietly says'])) + " " + person.quirk("\n[color=yellow]-I "+ str(globals.randomitemfromarray(["can't believe I'm ready to","am so ready to","didn't ever think that I would","can't wait to","never thought that I would"])) +" "+ globals.expansion.nameSex() + " my " + str(related) + ". ")
 				text += "\n\n[color=green]Unlocked Sexual and Incestuous actions with $name.[/color]"
 			else:
 				text += "\n\n[color=green]Unlocked sexual actions with $name.[/color]"
@@ -1740,16 +1588,35 @@ func talkconsent(mode=''):
 				text += "\n\n[color=green]After getting closer with $name, you felt like $he unlocked new potential. [/color]"
 				### Levelup Removed by Ank BugFix v4a
 			person.consent = true
+			text += usedEntrancement()
+		else:
+			text += "$He shows a troubled face and rejects your proposal. "
+			###---Added by Expansion---### Incest Check
+			if related != "unrelated" && person.consentexp.incest != true:
+				text += "\n$He looks at you. " + person.quirk("\n[color=yellow]-I just am not " + str(globals.randomitemfromarray(['comfortable with','interested in','ready to','prepared to','okay to'])) + " " + globals.expansion.nameSex() + " my " + str(related) + ". [/color]")
+				person.dailyevents.append('incest')
+				if rand_range(0,5) + person.dailyevents.count('incest') >= 5:
+					text += "\n\nYou do catch onto a flash of hesitation, however, and think that $he may be coming around to the idea of it. "
+					person.dailyevents.append('incest')
+			else:
+				text += "\n$He looks at you. " + person.quirk("\n[color=yellow]-I just am not " + str(globals.randomitemfromarray(['comfortable with','interested in','ready to','prepared to','okay to'])) + " " + globals.expansion.nameSex() + " you. [/color]")
+		if globals.expansionsettings.perfectinfo == true:
+			text += getRollText(roll,consent_chance)
 
-	if mode == "pregnancy":
-		var incest = 0
+	elif mode == "pregnancy":
 		person.dailytalk.append('consentpregnant')
 		if person.consent == true:
+			#Chance & Roll
+			consent_chance = round(person.loyal + person.instinct.reproduce - person.metrics.birth*10)
+			roll = round(rand_range(0,100))
+			#Modifiers; Fetishes: Pregnancy & Incest
 			related = globals.expansion.relatedCheck(person,globals.player)
 			if related != "unrelated" && person.checkFetish('incest'):
-				incest = globals.fetishopinion.find(person.fetish.incest)-3*10
-			#Change back to use Desired Offspring - Metrics.Birth when it is working
-			if person.checkFetish('pregnancy') || rand_range(0,100) <= person.loyal + person.instinct.reproduce + incest - (person.metrics.birth*10):
+				consent_chance += globals.fetishopinion.find(person.fetish.incest)-3*10
+			if person.checkFetish('pregnancy'):
+				consent_chance += 50
+			#Result
+			if roll <= consent_chance || checkEntrancement() == true:
 				#Change Dialogue
 				text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk(talk.consentBreederAccept(person))+"[/color]"
 				person.consentexp.pregnancy = true
@@ -1758,126 +1625,179 @@ func talkconsent(mode=''):
 					person.consentexp.incestbreeder = true
 					text += "\n$He " + str(globals.randomitemfromarray(['whispers','mumbles','quickly says','says','quietly says'])) + " " + person.quirk("[color=yellow]-I can not believe I want to " + globals.expansion.nameSex() + " my " + str(related) + ". ")
 				text += "\n\n[color=green]$name is willing to have a baby with you.[/color]"
+				text += usedEntrancement()
 			else:
+				expansion.updateMood(person,-1)
 				if person.metrics.birth > 0:
 					text += str(expansion.getIntro(person)) + person.quirk("[color=yellow]-I don't think I am ready for more kids.[/color]")
 				else:
 					text += str(expansion.getIntro(person)) + person.quirk("[color=yellow]-I am just not ready for children. Sorry.[/color]")
+			if globals.expansionsettings.perfectinfo == true:
+				text += getRollText(roll,consent_chance)
 		else:
+			expansion.updateMood(person,-1)
 			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("I haven't agreed to have sex with you, why do you think I'd have your baby? Shouldn't we talk about that first?")+"[/color]"
 
-	if mode == "stud":
+	elif mode == "stud":
 		person.dailytalk.append('consentstud')
-		if rand_range(25,100)+ ((person.metrics.birth-person.pregexp.desiredoffspring)*5) <= (person.loyal*.2) + (person.lewdness*.3) + (person.lust*.3) + (person.instinct.reproduce*5):
+		#Chance & Roll
+		consent_chance = round(person.loyal*.2 + person.lewdness*.3 + person.lust*.3 + person.instinct.reproduce*5 - (person.metrics.birth-person.pregexp.desiredoffspring)*5)
+		roll = round(rand_range(25,100))
+		#Modifiers; Fetish: Pregnancy
+		if person.checkFetish('pregnancy'):
+			consent_chance += 25
+		#Result
+		if roll <= consent_chance || checkEntrancement() == true:
 			#Change Dialogue
 			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk(talk.consentStudAccept(person))+"[/color]"
 			person.consentexp.stud = true
 			text += "\n\n[color=green]$name will now Breed other slaves for you as a Stud.[/color]"
+			text += usedEntrancement()
 		else:
 			expansion.updateMood(person,-1)
 			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("Nah, I'm not interested.")+"[/color]"
+		if globals.expansionsettings.perfectinfo == true:
+			text += getRollText(roll,consent_chance)
 
-	if mode == "breeder":
+	elif mode == "breeder":
 		person.dailytalk.append('consentbreeder')
-		if rand_range(50,100) + ((person.metrics.birth-person.pregexp.desiredoffspring)*10) <= (person.loyal*.2) + (person.lewdness*.2) + (person.lust*.2) + (person.instinct.reproduce*10):
+		#Chance & Roll
+		consent_chance = round(person.loyal*.2 + person.lewdness*.2 + person.lust*.2 + person.instinct.reproduce - (person.metrics.birth-person.pregexp.desiredoffspring)*10)
+		roll = round(rand_range(50,100))
+		#Modifiers; Fetish: Pregnancy
+		if person.checkFetish('pregnancy'):
+			consent_chance += 50
+		if roll <= consent_chance || checkEntrancement() == true:
 			#Change Dialogue
 			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk(talk.consentBreederAccept(person))+"[/color]"
 			person.consentexp.breeder = true
 			text += "\n\n[color=green]$name will now be Bred by other slaves for you.[/color]"
+			text += usedEntrancement()
 		else:
 			expansion.updateMood(person,-1)
 			if person.metrics.birth > 0:
 				text += str(expansion.getIntro(person)) + person.quirk("[color=yellow]-I don't think I am ready for more kids.[/color]")
 			else:
 				text += str(expansion.getIntro(person)) + person.quirk("[color=yellow]-I am just not ready for children yet.[/color]")
+		if globals.expansionsettings.perfectinfo == true:
+			text += getRollText(roll,consent_chance)
 
-	if mode == "incest":
+	elif mode == "incest":
 		person.dailytalk.append('consentincest')
+		#Auto-Success
 		if expansion.relatedCheck(person,globals.player) != "unrelated":
 			if person.consent == true:
 				person.consentexp.incest = true
 				text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("Okay, I'll fuck my other family members for you too.")+"[/color]"
 				text += "\n\n[color=green]$name will now do Incestuous Actions for you.[/color]"
-		elif (person.loyal*.2) + (person.lewdness*.2) + (person.lust*.1) + (globals.fetishopinion.find(person.fetish.incest)*10) + (person.dailyevents.find('incest')*5) + rand_range(0,20) >= 100:
-			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("Okay, I'll fuck my family members for you.")+"[/color]"
-			person.consentexp.incest = true
-			text += "\n\n[color=green]$name will now do Incestuous Actions for you.[/color]"
 		else:
-			expansion.updateMood(person,-1)
-			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("No! I'm not interested.")+"[/color]"
+			#Chance & Roll
+			consent_chance = round(person.loyal*.2 + person.lewdness*.2 + person.lust*.1 + globals.fetishopinion.find(person.fetish.incest)*10 + person.dailyevents.find('incest')*5)
+			roll = round(rand_range(0,100))
+			if roll <= consent_chance || checkEntrancement() == true:
+				text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("Okay, I'll fuck my family members for you.")+"[/color]"
+				person.consentexp.incest = true
+				text += "\n\n[color=green]$name will now do Incestuous Actions for you.[/color]"
+				text += usedEntrancement()
+			else:
+				expansion.updateMood(person,-1)
+				text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("No! I'm not interested.")+"[/color]"
+			if globals.expansionsettings.perfectinfo == true:
+				text += getRollText(roll,consent_chance)
 
-	if mode == "incestbreeder":
+	elif mode == "incestbreeder":
 		person.dailytalk.append('consentincestbreeder')
-		if (person.loyal*.2) + (person.lewdness*.2) + (person.lust*.1) + person.instinct.reproduce + (globals.fetishopinion.find(person.fetish.incest)*10) + (person.dailyevents.find('incest')*5) >= 100+(person.metrics.birth*10):
+		#Chance & Roll
+		consent_chance = round(person.loyal*.2 + person.lewdness*.2 + person.lust*.1 + person.instinct.reproduce + globals.fetishopinion.find(person.fetish.incest)*10 + person.dailyevents.find('incest')*5 - person.metrics.birth*10)
+		roll = round(rand_range(0,100))
+		if roll <= consent_chance || checkEntrancement() == true:
 			#Change Dialogue
 			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk(talk.consentBreederAccept(person))+"[/color]"
 			person.consentexp.incestbreeder = true
 			text += "\n\n[color=green]$name will now be Bred by related slaves for you.[/color]"
+			text += usedEntrancement()
 		else:
 			expansion.updateMood(person,-1)
 			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("Nah, I'm not interested.")+"[/color]"
+		if globals.expansionsettings.perfectinfo == true:
+			text += getRollText(roll,consent_chance)
 	
-	if mode == "livestock":
+	elif mode == "livestock":
 		person.dailytalk.append('consentlivestock')
-		#Count Acceptance
-		var livestockcounter = 0
-		if person.lactation == true && person.knowledge.has('lactating'):
-			livestockcounter += 3
-		if person.checkFetish('bemilked', 1) == true:
-			livestockcounter += 3
-		if person.lactating.pressure > 0:
-			livestockcounter += round(person.lactating.pressure * .25)
-		if person.checkFetish('submission', 1) == true:
-			livestockcounter += 1
-		if rand_range(0,100) <= (person.loyal*.35) + (person.obed*.25) + (livestockcounter*10) + globals.expansionsettings.baselivestockconsentchance:
-			#Change Dialogue
-			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("If that is really what you want for me, I trust you. I...I won't fight you if that is what you want from me.")+"[/color]"
-			person.consentexp.livestock = true
-			text += "\n\n[color=green]$name will go willingly to be livestock in the farm.[/color]"
+		if person.consentexp.breeder == true || person.consentexp.stud == true:
+			#Chance & Roll
+			consent_chance = round(globals.expansionsettings.baselivestockconsentchance + person.loyal*.35 + person.obed*.25)
+			roll = round(rand_range(50,100))
+			#Modifiers; Lactating, Fetish: BeMilked, Pregnancy, & Submission, 
+			var livestockcounter = 0
+			if person.lactation == true && person.knowledge.has('lactating'):
+				livestockcounter += 2
+				if person.lactating.pressure > 0:
+					livestockcounter += round(person.lactating.pressure * .2)
+			if person.checkFetish('bemilked', 1) == true:
+				livestockcounter += 3
+			if person.checkFetish('pregnancy', 1) == true:
+				livestockcounter += 2
+			if person.checkFetish('oviposition', 1) == true:
+				livestockcounter += 2
+			if person.checkFetish('submission', 1) == true:
+				livestockcounter += 1		
+			if livestockcounter > 0:
+				consent_chance += livestockcounter * 10
+			#Result
+			if roll <= consent_chance || checkEntrancement() == true:
+				#Change Dialogue
+				text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("If that is really what you want for me, I trust you. I...I won't fight you if that is what you want from me.")+"[/color]"
+				person.consentexp.livestock = true
+				text += "\n\n[color=green]$name will go willingly to be livestock in the farm.[/color]"
+				text += usedEntrancement()
+			else:
+				expansion.updateMood(person,-1)
+				text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("NO! Please, no! Anything but that. Don't send me to that awful place! I'm not livestock!")+"[/color]"
+			if globals.expansionsettings.perfectinfo == true:
+				text += getRollText(roll,consent_chance)
 		else:
 			expansion.updateMood(person,-1)
-			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("NO! Please, no! Anything but that. Don't send me to that awful place! I'm not livestock!")+"[/color]"
+			text += str(expansion.getIntro(person)) + "[color=yellow]-"+person.quirk("Seriously? I haven't even agreed to any [color=aqua]Breeding[/color] whatsoever, why do you think I'd agree to get stuck in the farm and milked, fucked, and " + globals.fastif(person.preg.has_womb, 'be bred', 'breed others') + " at your whim? No thank you.")+"[/color]"
 
 	if mode == "intro":
 		#Change Dialogue
 		text += "[color=red]Consent Topics are once per day. If Consent failed, you can try again tomorrow.[/color]\n\n[color=yellow]-What did you want to talk about?[/color]"
-		#ralph7
-		if globals.useRalphsTweaks:
-			var consentstatus = "\n\n" + person.name + " has consented to the following:\n"
-			if person.consentexp.party:
-				consentstatus += "$He will [color=green]fight[/color] for you.\n"
-			else:
-				consentstatus += "$He will [color=red]not fight[/color] for you.\n"
-			if person.consent:
-				consentstatus += "$He has given consent to [color=green]have sex[/color] with you.\n"
-			else:
-				consentstatus += "$He has not given consent to [color=red]have sex[/color] with you.\n"
-			if person.consentexp.pregnancy && person.preg.has_womb && globals.player.penis != "none":
-				consentstatus += "$He has given consent to [color=green]be impregnated[/color] by you.\n"
-			elif person.preg.has_womb && globals.player.penis != "none":
-				consentstatus += "$He has not given consent to [color=red]be impregnated[/color] by you.\n"
-			if person.consentexp.stud && person.penis != "none":
-				consentstatus += "$He has agreed to [color=green]stud[/color] for you and will impregnate other slaves.\n"
-			elif person.penis != "none":
-				consentstatus += "$He has not agreed to [color=red]stud[/color] for you and does not want to father children with other slaves.\n"
-			if person.consentexp.breeder && person.preg.has_womb:
-				consentstatus += "$He has agreed to [color=green]be bred[/color] by other slaves for you.\n"
-			elif person.preg.has_womb:
-				consentstatus += "$He has not agreed to [color=red]be bred[/color] by other slaves for you.\n"
-			if person.consentexp.incest:
-				consentstatus += "$He has consented to have [color=green]incestuous sex[/color].\n"
-			else:
-				consentstatus += "$He has not consented to have [color=red]incestuous sex[/color].\n"
-			if person.consentexp.incestbreeder && person.preg.has_womb:
-				consentstatus += "$He has consented to [color=green]be bred by family[/color].\n"
-			elif person.preg.has_womb:
-				consentstatus += "$He has not consented to [color=red]be bred by family[/color].\n"
-			if person.consentexp.livestock && globals.state.farm >= 3:
-				consentstatus += "$He has consented to [color=green]be livestock[/color].\n"
-			elif globals.state.farm >= 3:
-				consentstatus += "$He has not consented to [color=red]be livestock[/color].\n"
-			text += consentstatus
-		#/ralph7
+		#Added by RalphTweaks
+		var consentstatus = "\n\n" + person.name + " has consented to the following:\n"
+		if person.consentexp.party:
+			consentstatus += "$He will [color=green]fight[/color] for you.\n"
+		else:
+			consentstatus += "$He will [color=red]not fight[/color] for you.\n"
+		if person.consent:
+			consentstatus += "$He has given consent to [color=green]have sex[/color] with you.\n"
+		else:
+			consentstatus += "$He has not given consent to [color=red]have sex[/color] with you.\n"
+		if person.consentexp.pregnancy && person.preg.has_womb && globals.player.penis != "none":
+			consentstatus += "$He has given consent to [color=green]be impregnated[/color] by you.\n"
+		elif person.preg.has_womb && globals.player.penis != "none":
+			consentstatus += "$He has not given consent to [color=red]be impregnated[/color] by you.\n"
+		if person.consentexp.stud && person.penis != "none":
+			consentstatus += "$He has agreed to [color=green]stud[/color] for you and will impregnate other slaves.\n"
+		elif person.penis != "none":
+			consentstatus += "$He has not agreed to [color=red]stud[/color] for you and does not want to father children with other slaves.\n"
+		if person.consentexp.breeder && person.preg.has_womb:
+			consentstatus += "$He has agreed to [color=green]be bred[/color] by other slaves for you.\n"
+		elif person.preg.has_womb:
+			consentstatus += "$He has not agreed to [color=red]be bred[/color] by other slaves for you.\n"
+		if person.consentexp.incest:
+			consentstatus += "$He has consented to have [color=green]incestuous sex[/color].\n"
+		else:
+			consentstatus += "$He has not consented to have [color=red]incestuous sex[/color].\n"
+		if person.consentexp.incestbreeder && person.preg.has_womb:
+			consentstatus += "$He has consented to [color=green]be bred by family[/color].\n"
+		elif person.preg.has_womb:
+			consentstatus += "$He has not consented to [color=red]be bred by family[/color].\n"
+		if person.consentexp.livestock && globals.state.farm >= 3:
+			consentstatus += "$He has consented to [color=green]be treated as livestock[/color] in the [color=aqua]Farm[/color].\n"
+		elif globals.state.farm >= 3:
+			consentstatus += "$He has not consented to [color=red]be treated as livestock[/color] in the [color=aqua]Farm[/color].\n"
+		text += consentstatus
 		#Party Up Consent
 		if !person.dailytalk.has('consentparty') && person.consentexp.party == false:
 			buttons.append({text = person.dictionary("Will you travel and fight with me?"), function = 'talkconsent', args = 'party'})
@@ -1903,24 +1823,13 @@ func talkconsent(mode=''):
 		if person.consentexp.incest == true && (person.consentexp.breeder == true || person.consentexp.stud == true) && !person.dailytalk.has('consentincestbreeder') && person.consentexp.incestbreeder == false:
 			buttons.append({text = person.dictionary("Will you "+str(expansion.nameBeBred())+" by relatives?"), function = 'talkconsent', args = 'incestbreeder'})
 		#Livestock
-		if globals.state.farm >= 3 && (person.consentexp.breeder == true || person.consentexp.stud == true) && !person.dailytalk.has('consentlivestock') && person.consentexp.livestock == false:
+		if globals.state.farm >= 3 && !person.dailytalk.has('consentlivestock') && person.consentexp.livestock == false:
 			buttons.append({text = person.dictionary("Would you willingly work in the Farm as livestock?"), function = 'talkconsent', args = 'livestock'})
 	
-	if mode != "intro":
+	else:
 		buttons.append({text = person.dictionary("While we are discussing Consent..."), function = 'talkconsent', args = 'intro'})
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -1929,7 +1838,6 @@ func topicclothing(mode=''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	#Reactions to Requests
 	if mode == 'strip chest':
@@ -2072,18 +1980,7 @@ func topicclothing(mode=''):
 			buttons.append({text = person.dictionary("Cover your " + str(expansion.nameAsshole())), function = 'topicclothing', args = 'clothe ass', tooltip = person.dictionary("Cover $his " + str(expansion.nameAsshole()))})
 	expansion.updateBodyImage(person)
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 ###---End Expansion---###
@@ -2094,7 +1991,6 @@ func cheatButton(mode = ''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	#Add Items
 	# Removed 'gear' as it won't Add Correctly
 	var itemtypes = ['supply','ingredient','potion','gear']
@@ -2152,7 +2048,7 @@ func cheatButton(mode = ''):
 	
 	#Impregnation
 	if mode == "impregnate":
-		globals.fertilize_egg(person, globals.player.id, globals.player.unique)
+		globals.expansion.fertilize_egg(person, globals.player.id, globals.player.unique)
 		text += "Egg Fertilized by Player. $name is now pregnant with " + str(person.preg.unborn_baby.size()) + " babies."
 	
 	#Gain Pregnancy Day
@@ -2161,18 +2057,7 @@ func cheatButton(mode = ''):
 		text += "Day gained. Days Pregnant now " + str(person.preg.duration) + ". "
 	
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
 
@@ -2181,7 +2066,6 @@ func cheatButtonAddItem(mode = ''):
 	var text = ""
 	var state = false
 	var buttons = []
-	var sprite = []
 	
 	text += "1 [color=aqua]" +str(globals.itemdict[mode].name).capitalize() + "[/color] Added"
 	
@@ -2192,17 +2076,131 @@ func cheatButtonAddItem(mode = ''):
 		globals.state.unstackables[str(tmpitem.id)] = tmpitem
 	
 	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
-	###---Added by Expansion---### Naked Images for Uniques Fix
-	if nakedspritesdict.has(person.unique) && person.imagetype != 'naked':
-		if person.obed >= 50 || person.stress < 10:
-			sprite = [[nakedspritesdict[person.unique].clothcons, 'slave', 'opac']]
-		else:
-			sprite = [[nakedspritesdict[person.unique].clothrape, 'slave', 'opac']]
-	elif person.imagefull != null:
-		sprite = [[person.imagefull,'slave','opac']]
-	if globals.player.imagefull != null:
-		sprite.append([globals.player.imagefull,'player','opac'])
-	###---End Expansion---###
-	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, sprite)
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
 	get_tree().get_current_scene().rebuild_slave_list()
 	get_parent().slavetabopen()
+	
+#ralphC - Succubus Topics
+func succubustopics(mode=''):
+	var text = ""
+	var state = false
+	var buttons = []
+	
+	#Intro Text
+	text += str(expansion.getIntro(person)) + "\n[color=yellow]-"+ person.quirk(str(talk.introsuccubus(person)) + "[/color]")
+	if person.mana_hunger > 0 && !person.vagvirgin:
+		var manahungertext = ""
+		if person.mana_hunger >= variables.succubushungerlevel[1] * variables.basemanafoodconsumption * variables.succubusagemod[person.age]:
+			manahungertext = "[color=red]"+str(person.mana_hunger)+"[/color]"
+		elif person.mana_hunger >= variables.succubushungerlevel[0] * variables.basemanafoodconsumption * variables.succubusagemod[person.age]:
+			manahungertext = "[color=yellow]"+str(person.mana_hunger)+"[/color]"
+		else:
+			manahungertext = "[color=green]"+str(person.mana_hunger)+"[/color]"
+		text += "\n\nLooking deep into $name's eyes, you can sense that $his \ncurrent hunger for mana is: " + manahungertext + "\n\n$He needs to absorb \n[color=yellow]" + str(variables.basemanafoodconsumption * variables.succubusagemod[person.age]) + "[/color] mana per day to keep $his hunger from increasing.\n"
+	#The Birds and the Bees
+	if !person.knowledge.has('issuccubus'):
+		buttons.append({text = person.dictionary("The Birds and the Bees."), function = 'birdsandbees', args = 'start', tooltip = "Explain $his true nature to $him."})	
+	#Mana Feeding Policy
+	elif (person.age == 'child' && person.vagvirgin == false) || person.age != 'child':
+		buttons.append({text = person.dictionary("Set min mana storage before feeding $name."), function = 'setmanafeedfloor', args = 'getmanafloor', tooltip = 'mana reserves will not be fed to $name at the end of each day if below this amount'})
+	#Whoring Rules (later expansion)
+	#if timeswhoredout > 1 && person.work in ['all whore types','etc']:
+	#	priotitize feeding
+	#	prioritize making money		
+	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
+	get_tree().get_current_scene().rebuild_slave_list()
+	get_parent().slavetabopen()
+
+func birdsandbees(mode = ''):
+	var text = ''
+	var state = false
+	var buttons = []
+	if mode == "revealsuccubus":
+		if person.vagvirgin && person.age == 'child':
+			text += "You explain to $name that $he is a "+str(person.race_display)+", that once $he's older or loses $his virginity, $he will require mana derived from sexual energy in order to survive. "+"\n\n[color=yellow]-"+ person.quirk(str(talk.succubusrevealed1(person)) + "[/color]") 
+		else:
+			text += "You explain to $name that $he is a "+str(person.race_display)+" and that only mana derived from sexual energy can sustain $him. "+"\n\n[color=yellow]-"+ person.quirk(str(talk.succubusrevealed2(person)) + "[/color]") 
+		person.knowledge.append('issuccubus')
+	if mode == "start":
+		if !person.knowledge.has('issuccubus'):
+			buttons.append({text = person.dictionary("Reveal a "+str(person.race_display)+"'s true nature."), function = 'birdsandbees', args = 'revealsuccubus', tooltip = "Explain $his true nature to $him."})
+		elif rand_range(0,10) > 6:
+			text += "I know $master. Some day I'll grow up to be a Succuba- a Succubutts? No I mean a suck, a suck, a Succubus!"
+		else:
+			text += "I already understand $master. When I grow up, I'll need to make a lot of men really, really happy instead of eating."
+	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
+	get_tree().get_current_scene().rebuild_slave_list()
+	get_parent().slavetabopen()	
+
+func setmanafeedfloor(mode = ''):
+	var text = ''
+	var state = false
+	var buttons = []
+	if mode == 'selection_0':
+		person.manafeedpolicy = 0
+		text += "Don't worry, so long as I have mana, I'll always feed you."
+		text += "\n\n[color=aqua]Mana will always be shared with $name according to $his hunger.[/color]"
+	if mode == 'selection_50':
+		person.manafeedpolicy = 50
+		text += "I'll feed you, but I have to keep some minimal reserves."
+		text += "\n\n[color=aqua]50 mana will be kept in reserve even if $name is hungry.[/color]"
+	if mode == 'selection_100':
+		person.manafeedpolicy = 100
+		text += "I'll feed you, but I have to keep some minimal reserves."
+		text += "\n\n[color=aqua]100 mana will be kept in reserve even if $name is hungry.[/color]"
+	if mode == 'selection_250':
+		person.manafeedpolicy = 250
+		text += "I'll feed you, but I have to keep some minimal reserves."
+		text += "\n\n[color=aqua]250 mana will be kept in reserve even if $name is hungry.[/color]"	
+	if mode == 'selection_500':
+		person.manafeedpolicy = 500
+		text += "I'll feed you, but I have to keep some minimal reserves."
+		text += "\n\n[color=aqua]500 mana will be kept in reserve even if $name is hungry.[/color]"
+	if mode == 'selection_1000':
+		person.manafeedpolicy = 1000
+		text += "I'll feed you, but I have to keep some minimal reserves."
+		text += "\n\n[color=aqua]1,000 mana will be kept in reserve even if $name is hungry.[/color]"
+	if mode == 'selection_10000':
+		person.manafeedpolicy = 10000
+		text += "I'll feed you, but I have to keep some minimal reserves."
+		text += "\n\n[color=aqua]10,000 mana will be kept in reserve even if $name is hungry.[/color]"
+	if mode == 'selection_99999':
+		person.manafeedpolicy = 99999
+		text += "You'll be expected to gather your own mana."
+		text += "\n\n[color=aqua]Mana will not be shared with $name unless you have a tremendous stockpile.[/color]"
+	if mode == 'getmanafloor':
+		text += "As long as there is at least this amount of mana in reserve,\n $name will be fed at the end of each day.\n\n[color=gold]Otherwise $his only source of sustenance will be male orgasms $he absorbs during interactions, jobs, or events[/color]."
+		buttons.append({text = "0 (Always try to feed)", function = 'setmanafeedfloor', args = "selection_0"})
+		buttons.append({text = "50 mana", function = 'setmanafeedfloor', args = "selection_50"})
+		buttons.append({text = "100 mana", function = 'setmanafeedfloor', args = "selection_100"})
+		buttons.append({text = "250 mana", function = 'setmanafeedfloor', args = "selection_250"})
+		buttons.append({text = "500 mana", function = 'setmanafeedfloor', args = "selection_500"})
+		buttons.append({text = "1000 mana", function = 'setmanafeedfloor', args = "selection_1000"})
+		buttons.append({text = "10000 mana", function = 'setmanafeedfloor', args = "selection_10000"})
+		buttons.append({text = "99999 (Probably never feed)", function = 'setmanafeedfloor', args = "selection_99999"})
+		#get_node("slaverename").popup()
+		#get_node("slaverename/Label").set_text(person.dictionary("Enter a number between 0 and 99999."))
+		#print("Ralph Test: person.manafeedpolicy == " + str(person.manafeedpolicy))
+		#get_node("slaverename/LineEdit").set_text(person.manafeedpolicy)
+		#pending_slave_rename = "manapolicyfloor"
+	buttons.append({text = str(globals.randomitemfromarray(['Nevermind','Go Back','Return','Cancel'])), function = '_on_talk_pressed', tooltip = "Go back to the previous screen"})
+	get_tree().get_current_scene().dialogue(state, self, person.dictionary(text), buttons, updateSprites(person))
+	get_tree().get_current_scene().rebuild_slave_list()
+	get_parent().slavetabopen()
+#/ralphC
+
+func checkEntrancement():
+	var success = false
+	var effect = globals.effectdict.entranced.duplicate()
+	if person.effects.has(effect.code):
+		success = true
+	return success
+
+func usedEntrancement():
+	var text = ""
+	if checkEntrancement() == true:
+		person.add_effect(globals.effectdict.entranced, true)
+		text = "\nYou watch as $his eyes begin to refocus and $he seems to shake $himself out of the mental fog. $His [color=aqua]entrancement[/color] seems to have worn off.\n"
+	return text

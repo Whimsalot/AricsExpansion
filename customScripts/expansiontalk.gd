@@ -12,6 +12,7 @@ var person
 #Liquid/Item: [color=aqua] [/color]
 #Sexual: [color=#FFD5CF] [/color]
 #Cum/Milk: [color=#E0D8C6] [/color]
+#Header: [color=#d1b970]
 
 #text += "\n[color=yellow]-" + str(responseExample(person)) + "[/color]"
 
@@ -23,11 +24,8 @@ var person
 ###Randomly choose the name for "Master" each Convo
 func getMasterName(person):
 	var names = []
-	var related = ''
-	var text = ''
+	var related = globals.expansion.relatedCheck(globals.player, person)
 	#Begin
-	names.clear()
-	related = globals.expansion.relatedCheck(globals.player, person)
 ###Normal
 	if globals.player.sex == 'male':
 		names.append('Master')
@@ -93,7 +91,7 @@ func getMasterName(person):
 ###Racial
 	if person.race == 'Taurus' || person.traits.has('Cow'):
 		names.append('Moooster')
-		names.append('Moooo- sorry...mooaaaster')
+		names.append('Moooo- sorry... mooaaaster')
 	if person.race.find('Cat') >= 0:
 		names.append('Meowster')
 		names.append('Purrfect Moewster')
@@ -154,6 +152,11 @@ func getMasterName(person):
 			names.append('Nestmother')
 		names.append('Strongbeak')
 		names.append('Talonlord')
+	if person.race.find('Kobold') >= 0:
+		names.append('Den Leader')
+		names.append('All Watcher')
+		names.append('Clan Master')
+
 #Statuses
 #"Valued" Statuses
 	if person.mind.status == 'Lover':
@@ -360,14 +363,10 @@ func getMasterName(person):
 		names.append('...')
 		names.append('Mmm')
 
-	text = globals.randomitemfromarray(names)
-	#Quick Fix to stop "Null" names
-	if text == null:
-		if globals.player.sex == 'male':
-			text = "Master"
-		else:
-			text = "Mistress"
-	person.masternoun = str(text)
+	if names.empty():
+		person.masternoun = "Master" if globals.player.sex == 'male' else "Mistress"
+	else:
+		person.masternoun = globals.randomitemfromarray(names)
 
 var difficultyarray = ['None','Simple','Easy','Medium','Hard','Impossible']
 var chatchecktypearray = ['degrading','lewd','respectful']
@@ -408,7 +407,7 @@ func quirkCursing(text):
 
 func quirkDitzy(text):
 	if rand_range(0,1) >= .5:
-		text = ' ' + str(globals.randomitemfromarray(['-like-','-and, uh-','-and, like-','-uh-','-uhhh','...like...'])) + ' '
+		text = ' ' + str(globals.randomitemfromarray(['-like-','-and, uh-','-and, like-','-uh-','-uhhh','... like... '])) + ' '
 	return text
 
 func quirkCat(person,text):
@@ -472,13 +471,13 @@ func buttonTextSloth(person):
 
 #---Intros---#
 #2-3 each for: ['sad','angry','scared','indifferent','obediant','horny','respectful','happy','playful']
-#2-3 each for: Flaws
+#2-3 each for: Vices
 #That gives between 4-6 choices per person
 
 func introGeneral(person):
 	var text = ""
 	var choice = []
-	###---Add Flaws later
+	###---Add Vices later
 
 	if person.mood == 'playful':
 		choice.append("Well if it isn't my favorite $master!")
@@ -494,10 +493,10 @@ func introGeneral(person):
 		choice.append("What can I do for you, $master?")
 		choice.append("$master?")
 	if person.mood == 'horny':
-		choice.append("Mmm...looking good today, $master...")
-		choice.append("You...you are looking good, $master...")
-		choice.append("$master, do you...think my " +str(globals.expansion.nameAss())+" looks good?")
-		choice.append("$master, do you...think my " +str(globals.expansion.getGenitals(person))+" look good...enough to fuck?")
+		choice.append("Mmm... looking good today, $master...")
+		choice.append("You... you are looking good, $master...")
+		choice.append("$master, do you... think my " +str(globals.expansion.nameAss())+" looks good?")
+		choice.append("$master, do you... think my " +str(globals.expansion.getGenitals(person))+" look good... enough to fuck?")
 	if person.mood == 'obediant':
 		choice.append("It is my pleasure to serve you, $master")
 		choice.append("I will serve, $master, however I can.")
@@ -526,13 +525,13 @@ func introStrip(person):
 	var text = ""
 	var choices = []
 	if person.mind.demeanor in ['meek','shy']:
-		choices.append('Talk about...my clothing?')
-		choices.append('What...what I am wearing?')
+		choices.append('Talk about... my clothing?')
+		choices.append('What... what I am wearing?')
 		choices.append('Why do you want to talk about what I am wearing?')
 	elif person.mind.demeanor == "reserved":
 		choices.append('What about my clothing?')
 		choices.append('My clothing?')
-		choices.append('What I am wear? Okay, I guess...')
+		choices.append('What I am to wear? Okay, I guess...')
 	if person.mind.demeanor in ['open','excitable']:
 		choices.append('Okay, cool! Lets talk!')
 		choices.append('What do you want to talk about?')
@@ -547,7 +546,7 @@ func introStrip(person):
 		choices.append('Can I cover up my ' + str(globals.expansion.getGenitals(person)) + "?")
 	elif person.exposed.genitals == true && person.exposed.genitalsforced == true:
 		choices.append('Why did you ruin my pants?')
-		choices.append('Why can I not wear a pants?')
+		choices.append('Why can I not wear pants?')
 		choices.append('Why did you take away my pants?')
 	if person.exposed.ass == true && person.exposed.assforced == false:
 		choices.append('Can I cover up my ' + str(globals.expansion.nameAsshole()) + "?")
@@ -561,8 +560,7 @@ func introStrip(person):
 func consentPartyAccept(person):
 	var text = ""
 	var choice = []
-	###---Add Flaws later
-
+	###---Add Vices later	
 	if person.mood == 'playful':
 		choice.append("Yeah, sure! I'll travel alongside you, $master!")
 		choice.append("What do you think we'll find, $master?")
@@ -601,6 +599,39 @@ func consentPartyAccept(person):
 	choice.append("Yes, $master, I'll travel with you!")
 	choice.append("Yes, $master, I'll fight for you!")
 	text = globals.randomitemfromarray(choice)
+	#Vices; Wrath
+	if person.checkVice('wrath'):
+		var wrath_eager = ["I can't wait to get out there and fuck some shit up!","I'm going to get to obliterate some fuckers, right?","You aren't going to fuck me over on gear, right?","Just be warned...you won't like me when I'm angry."]
+		for i in person.effects.values():
+			if i.code == 'captured':
+				wrath_eager.append("I can't believe I'm going to fight for the asshole who fucking captured me...but anything to get out of this shithole...")
+				wrath_eager.append("Fuck, anything to get out of this shithole sooner...")
+				wrath_eager.append("Just don't fuck me over or I swear we're going another round.")
+				wrath_eager.append("Even though you're the piece of shit who enslaved me in the first place.")
+		text += " " + globals.randomitemfromarray(wrath_eager)
+	#Stats
+	if person.health <= person.stats.health_max * .5:
+		text += "\nBy the way, you ARE planning on healing my wounds first, right? I'm no good to you dead, $master."
+	if person.energy <= person.stats.energy_max * .25:
+		text += "\nYou are going to let me catch my breath first, right $master? I'm exhausted."
+	return text
+
+func consentPartyReduceRebellion(person):
+	var text = ""
+	var choice = []
+	choice.append("Maybe this won't be as bad as I feared it would be.")
+	choice.append("Maybe I'll survive this after all.")
+	choice.append("I guess...this may not be that bad...")
+	choice.append("Fighting with this dick instead of against them? Huh...")
+	choice.append("Well, isn't this a surprising twist?")
+	choice.append("This...better not get me killed...")
+	if person.wit >= 50:
+		choice.append("Maybe I can work this to my advantage...")
+		choice.append("I can make this work...")
+	if person.charm >= 50:
+		choice.append("I can make them grow to love me...I know it.")
+		choice.append("Good job, me. Just keep smiling and this'll work out alright.")
+	text = globals.randomitemfromarray(choice)
 	return text
 
 func consentPartyRefuse(person):
@@ -611,39 +642,42 @@ func consentPartyRefuse(person):
 		choice.append("But what could I possibly get out of that, huh?")
 	if person.mood == 'happy':
 		choice.append("I would really rather not if that's okay...")
-		choice.append("Thanks for the offer but...do I have to?")
+		choice.append("Thanks for the offer but... do I have to?")
 	if person.mood == 'respectful':
 		choice.append("I appreciate that you think that I'm ready for that, but I don't think that I am...")
-		choice.append("If you want to force me to, you can $master, but if you want my consent...I'm not ready yet.")
+		choice.append("If you want to force me to, you can $master, but if you want my consent... I'm not ready yet.")
 	if person.mood == 'horny':
 		choice.append("What? Run out and get myself killed? Why would I do that when I could stay here and fuck?")
 		choice.append("Wouldn't it be much better if I waited for you here in your bedroom?")
 	if person.mood == 'obediant':
-		choice.append("If you want me to I would have to...but please don't make me fight $master...")
+		choice.append("If you want me to I would have to... but please don't make me fight $master...")
 		choice.append("Thank you for asking me, $master. I am honored. I would rather not fight.")
 	if person.mood == 'indifferent':
 		choice.append("Why would I want to do that?")
 		choice.append("What? Nah. No thanks.")
 		choice.append("Hah! You think I'd risk my life alongside you? Dream on.")
 	if person.mood == 'scared':
-		choice.append("Me? Fight? I...um...Ahh! No!")
+		choice.append("Me? Fight? I... um... Ahh! No!")
 		choice.append("Fight? I'll get killed for sure! Please no!")
-		choice.append("I can't...fight...*whimper*")
+		choice.append("I can't... fight... *whimper*")
 	if person.mood == 'angry':
 		choice.append("You want me to fight for you? I'd be more likely to fight you!")
 		choice.append("Fight for you? Fuck off. $master.")
-		choice.append("Fight by your side? Hahahahaha...no.")
+		choice.append("Fight by your side? Hahahahaha... no.")
 	choice.append("I really don't want to fight, $master.")
 	choice.append("I appreciate you asking me. I don't think I'm ready to fight alongside you.")
 	choice.append("I'm not ready yet. Please respect that.")
-	choice.append("Maybe...one day. But not today.")
+	choice.append("Maybe... one day. But not today.")
 	text = globals.randomitemfromarray(choice)
+	#Vices; Wrath
+	if person.checkVice('wrath'):
+		text += " " + globals.randomitemfromarray(["*clears throat* FUCK YOU!","Yeah, get me out of here, put a sword in my hand, and let me SHOW YOU MY GRATITUDE!","I can't BELIEVE you'd ASK me that!","FUUUUUCK!","Fucking ASSHOLE. Why would I EVER risk my life for you?"])
 	return text
 
 func consentStudAccept(person):
 	var text = ""
 	var choice = []
-	###---Add Flaws later
+	###---Add Vices later
 
 	if person.mood == 'playful':
 		choice.append("Yeah, sure! I can't wait to stick it in one of your girls, $master!")
@@ -660,9 +694,9 @@ func consentStudAccept(person):
 		choice.append("Thank you for this gift, $master. I accept.")
 		choice.append("Yes, $master. Thank you.")
 	if person.mood == 'horny':
-		choice.append("Oh...oh fuck yes. Thank you, $master! I want to "+str(globals.expansion.nameBreed())+" them badly. For you, of course.")
-		choice.append("Sounds...enticing. I'm ready whenever you are, $master! Or whenever they are. Same thing?")
-		choice.append("Yes! I mean...yes. Yes. YES! ...Yes? Shit...Yes. I will.")
+		choice.append("Oh... oh fuck yes. Thank you, $master! I want to "+str(globals.expansion.nameBreed())+" them badly. For you, of course.")
+		choice.append("Sounds... enticing. I'm ready whenever you are, $master! Or whenever they are. Same thing?")
+		choice.append("Yes! I mean... yes. Yes. YES! ...Yes? Shit... Yes. I will.")
 	if person.mood == 'obediant':
 		choice.append("Yes, $master. My "+str(globals.expansion.namePenis())+" is yours to command.")
 		choice.append("I will serve, $master. Even inside of another slave.")
@@ -670,15 +704,15 @@ func consentStudAccept(person):
 	if person.mood == 'indifferent':
 		choice.append("Sure, whatever. I'll "+str(globals.expansion.nameBreed())+" some bitches for you.")
 		choice.append(""+str(globals.expansion.nameBreed())+" sluts? Alright...")
-		choice.append("Sure thing, $master..")
+		choice.append("Sure thing, $master...")
 		choice.append("Alright then, I guess I'll "+str(globals.expansion.nameBreed())+" for you. Tell me when you want me to start.")
 	if person.mood == 'scared':
-		choice.append("O-o-okay $master...if that's what you want...")
-		choice.append("Will...I have to take care of the baby? I mean, I will...but will I?")
-		choice.append("I...I guess. No one will be watching us, right?")
+		choice.append("O-o-okay $master... if that's what you want...")
+		choice.append("Will... I have to take care of the baby? I mean, I will... but will I?")
+		choice.append("I... I guess. No one will be watching us, right?")
 	if person.mood == 'angry':
 		choice.append("Yeah? Fine, I'll "+str(globals.expansion.nameBreed())+" for you. Not like I have a choice...")
-		choice.append("Really? That's what you want from me?\nLike...really? Fucking hell...\nFine. I'll do it.")
+		choice.append("Really? That's what you want from me?\nLike... really? Fucking hell...\nFine. I'll do it.")
 		choice.append("Sure, whatever. We going now?")
 		choice.append("You want me to "+str(globals.expansion.nameBreed())+" others for you? Fine, whatever. Better to be at the top of the wheel than beneath it, I suppose.")
 	choice.append("Yes, $master, I'll "+str(globals.expansion.nameBreed())+" for you!")
@@ -688,7 +722,7 @@ func consentStudAccept(person):
 func consentBreederAccept(person):
 	var text = ""
 	var choice = []
-	###---Add Flaws later
+	###---Add Vices later
 
 	if person.mood == 'playful':
 		choice.append("Yeah, sure! I can't wait to "+str(globals.expansion.nameBeBred())+" for you, $master!")
@@ -705,26 +739,26 @@ func consentBreederAccept(person):
 		choice.append("Thank you for this gift, $master. I accept. Tell me when it is time to "+str(globals.expansion.nameBeBred())+"")
 		choice.append("Yes, $master. Thank you.")
 	if person.mood == 'horny':
-		choice.append("Oh...oh fuck yes. Thank you, $master! I want to "+str(globals.expansion.nameBeBred())+" badly. For you, of course.")
-		choice.append("Sounds...enticing. I'm ready whenever you are, $master!")
-		choice.append("Yes! I mean...yes. Yes. YES! ...Yes? Shit...Yes. I will.")
-		choice.append("Am...am I going to be strapped down and filled to the brink with cum? Mmmm...")
+		choice.append("Oh... oh fuck yes. Thank you, $master! I want to "+str(globals.expansion.nameBeBred())+" badly. For you, of course.")
+		choice.append("Sounds... enticing. I'm ready whenever you are, $master!")
+		choice.append("Yes! I mean... yes. Yes. YES! ...Yes? Shit... Yes. I will.")
+		choice.append("A-am I going to be strapped down and filled to the brink with cum? Mmmm...")
 	if person.mood == 'obediant':
 		choice.append("Yes, $master. My "+str(globals.expansion.namePussy())+" is yours to command.")
 		choice.append("I will serve, $master. Even if that means I must "+str(globals.expansion.nameBeBred())+".")
 		choice.append("I will humbly do as you ask, $master.")
 	if person.mood == 'indifferent':
 		choice.append("Sure, whatever. I'll "+str(globals.expansion.nameBeBred())+" for you.")
-		choice.append("I'm to "+str(globals.expansion.nameBeBred())+" like some slut?\nAlright...I guess...")
+		choice.append("I'm to "+str(globals.expansion.nameBeBred())+" like some slut?\nAlright... I guess...")
 		choice.append("Sure thing, $master...")
 		choice.append("Alright then, I guess I'll "+str(globals.expansion.nameBeBred())+" for you. Tell me when you want me to start.")
 	if person.mood == 'scared':
-		choice.append("O-o-okay $master...if that's what you want...")
-		choice.append("Will...I have to take care of the baby? I mean, I will...but will I?")
-		choice.append("I...I guess. No one will be watching us, right?")
+		choice.append("O-o-okay $master... if that's what you want...")
+		choice.append("Will... I have to take care of the baby? I mean, I will... but will I?")
+		choice.append("I-I guess. No one will be watching us, right?")
 	if person.mood == 'angry':
 		choice.append("Yeah? Fine, I'll "+str(globals.expansion.nameBeBred())+" for you. Not like I have a choice...")
-		choice.append("Really? That's what you want from me?\nLike...really? Fucking hell...\nFine. Whatever. I'll do it. Breed me like an animal.")
+		choice.append("Really? That's what you want from me?\nLike... really? Fucking hell...\nFine. Whatever. I'll do it. Breed me like an animal.")
 		choice.append("Sure, whatever. It happening now?")
 		choice.append("You want me to "+str(globals.expansion.nameBeBred())+" for you? Fine, whatever. Better to be at the top of the wheel than beneath it, I suppose.")
 	choice.append("Yes, $master, I'll "+str(globals.expansion.nameBeBred())+" for you!")
@@ -732,4 +766,135 @@ func consentBreederAccept(person):
 	text = globals.randomitemfromarray(choice)
 	return text
 
+#ralphC - Succubus text
+func introsuccubus(person):
+	var text = ""
+	var choice = []
+	if !person.knowledge.has('issuccubus'):
+		if person.age == 'child' && person.vagvirgin:
+			choice.append('My... hunger?')
+			if person.mind.demeanor in ['open','excitable'] || person.mood in ['happy', 'playful']:
+				choice.append('Why did you bring me candy or something, $master?')
+		elif person.mana_hunger >= variables.succubushungerlevel[0] * variables.basemanafoodconsumption * variables.succubusagemod[person.age]:
+			if person.mind.demeanor in ['meek'] || person.mood == 'scared':
+				choice.append('I am sorry $master. I have been eating more than anyone else lately.')
+			if person.mind.demeanor == "reserved":
+				choice.append('I have been very, very hungry $master...')
+			if person.mood in ['playful','happy']:
+				choice.append('Oh my gods, I have been sooo hungry lately!  No matter how much I eat it never ends.')
+				choice.append("I am so totally starving!  Like so hungry it doesn't even make sense $master.")
+				choice.append("Thanks for thinking of me, $master! I have been famished lately. Did you bring me something?")
+			if person.mood == 'respectful':
+				choice.append("Yes $master, as you will.")
+			if person.mood == 'horny':
+				choice.append("Um, about all the extra food I've been eating. Maybe you could be persuaded to look the other way in exchange for...")
+				choice.append("I could pay for the extra portions with my body, $master...")
+			if person.mood == 'obediant':
+				choice.append("$master, I'm sorry. I have been sneaking extra servings at meals.")
+			if person.mood == 'indifferent':
+				choice.append("Sure thing, $master...")
+			if person.mood == 'scared':
+				choice.append("O-o-okay $master...if that's what you want...")
+			if person.mood == 'angry':
+				choice.append("I'm just really hungry, ok. What's it to you?")
+		else:
+			choice.append('My... hunger?')
+	else:
+		if person.mood == 'indifferent':
+			choice.append("Sure, whatever.")
+			choice.append("Sure thing, $master...")
+		if person.mana_hunger >= (variables.succubushungerlevel[0] * variables.basemanafoodconsumption * variables.succubusagemod[person.age]):
+			if person.mood == 'playful':
+				choice.append("You're going to let me eat all I want now, I know it!")
+			if person.mood == 'happy':
+				choice.append("Thanks for thinking of me, $master! Now that you mention it, I'm starving.")
+			if person.mood == 'respectful':
+				choice.append("$master, if that is your will. I will "+str(globals.expansion.nameBeBred())+".")
+			if person.mood == 'horny':
+				choice.append("Sounds...enticing. I'm ready whenever you are, $master!")
+				choice.append("Yes! I mean you'll feed me...yes. Yes. YES! ...Yes? Shit...finally...yes.")
+			if person.mood == 'obediant':
+				choice.append("Yes, $master. My "+str(globals.expansion.namePussy())+" is yours to command.")
+			if person.mood == 'scared':
+				choice.append("O-o-okay $master...if that's what you want...")
+				choice.append("Yes $master... I'll do anything. Please feed me...")
+			if person.mood == 'sad':
+				choice.append("I'm sorry $master. I'm so hungry I haven't been able to stop from "+str(globals.expansion.nameCrying())+".")
+			if person.mood == 'angry':
+				choice.append("It's about time! If you don't feed me I'll die you know.")
+		else:
+			if person.mood == 'scared':
+				choice.append("O-o-okay $master... please, please, please don't stop feeding me...")
+			if person.mood == 'angry':
+				choice.append("Yeah, what about it?")
+			if person.mood == 'obediant':
+				choice.append("As you wish, $master.")
+			if person.mood == 'happy':
+				choice.append("Thanks for thinking of me, $master!")
+			else:
+				choice.append('Yes $master?')
+	if choice == null:
+		choice.append("Alright $master.")
+		choice.append('Yes $master?')
+	text = globals.randomitemfromarray(choice)
+	return text
+	
+func succubusrevealed1(person):
+	var text = ""
+	var choice = []
+	if person.mood == 'scared':
+		if person.stats.loyal <= 20:
+			choice.append("But then I won't be able to live without you $master! $sir, I'll be good, please just make it so I never grow up, please.")
+		elif person.stats.loyal <= 70:
+			choice.append("So, I wouldn't be able to live without you would I, $master? Could you... make it so I never grow up, please?")
+		else:
+			choice.append("It's scary, but I know you'll take care of me, $master. Whatever you decide for me will be ok.")
+	elif person.mood in ['happy','playful','horny'] || person.lewdness > 50:
+		choice.append("$master, that's amazing!  I can't wait to actually EAT orgasms. This is best news ever!")
+		choice.append("That...is...soooo naughty! I can do it, I know I can!")
+	elif person.mood in ['respectful','obediant']:
+		choice.append('Yes... $master. I understand.')
+	if person.mood in ['indifferent','angry'] || person.stats.loyal <= 20:
+		choice.append("Whatever... whether I live or die is just up to you either way.")
+	if choice == null:
+		choice.append('Yes... $master. I understand.')
+	text = globals.randomitemfromarray(choice)
+	return text
+
+func succubusrevealed2(person):
+	var text = ""
+	var choice = []
+	if person.mood == 'scared':
+		if person.wit > 70:
+			choice.append("Oh no, I'm a liability to you, $master! I promise I'll work hard, please take care of me.")
+		else:
+			choice.append("Oh no, how will I feed myself when I get old?")
+	if person.mana_hunger > (variables.succubushungerlevel[0] * variables.basemanafoodconsumption * variables.succubusagemod[person.age]):
+		if person.traits.has('Sex-crazed'):
+			if person.wit > 70:
+				choice.append("So that's why? Well, let's go fix my Viamin D deficiency then $master.")
+			elif person.wit < 15:
+				choice.append("Um, I don't really get it... it's so hard to pay attention. I just need to get plowed so bad it hurts.")
+			else:
+				choice.append("So that's why I can't stop thinking about cock? Well, I guess I know what I need to do now...")
+		elif person.lewdness < 10 || person.traits.has('Prude'):
+			choice.append("Could you... I don't know... just give me mana directly then? I don't want to die, but I don't think I want to be a whore either.")
+		else:
+			choice.append("Well, my recurring dream of competing in a sausage eating contest makes a different kind of sense now...")
+	else:
+		if person.lewdness > 40:
+			choice.append("I guess I just need to keep on fucking then don't I, $master?")
+		if person.stats.loyal > 50:
+			choice.append("So, I'd have hard time living without you wouldn't I, $master? Thank you for taking care of me.")
+		if person.metrics.ownership < 3:
+			choice.append("Thanks for telling me right away. I hope you'll take care of me, $master.")
+		if person.metrics.ownership >= 3:
+			choice.append('Yes $master. I understand now. I... have a lot to think about.')
+		if person.mood in ['indifferent','angry'] || person.stats.loyal <= 20:
+			choice.append("Whatever... whether I live or die is just up to you either way.")
+	if choice == null:
+		choice.append('Yes... $master. I understand.')
+	text = globals.randomitemfromarray(choice)
+	return text
+#/ralphC
 #---End Intro---#

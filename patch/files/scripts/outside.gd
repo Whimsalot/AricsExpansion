@@ -87,7 +87,7 @@ func buildbuttons(array, target = self, doClear = true, curCount = 0):
 		else:
 			newbutton.connect('pressed', target, i.function)
 		if i.has('disabled'):
-			newbutton.set_disabled(true)
+			newbutton.set_disabled(i.disabled)
 		if i.has('tooltip'):
 			newbutton.set_tooltip(i.tooltip)
 		if i.has('textcolor'):
@@ -269,6 +269,27 @@ func _on_grade_mouse_exited():
 	globals.hidetooltip()
 
 func _on_spec_mouse_exited():
+	globals.hidetooltip()
+
+func _on_movement_mouse_entered():
+	var text 
+	if partyselectedchar.movement == 'walk':
+		text = "[center][color=aqua]Normal Movement.[/color][/center]\n$name is walking around like normal."
+	elif partyselectedchar.movement == 'fly':
+		text = "[center][color=aqua]Will Fly until under 50 Energy[/color][/center]\n$name is currently flapping $his wings and hovering a foot or two off of the ground.\n\n[color=green]Attack and Speed increased by 125%\n[/color]"
+	elif partyselectedchar.movement == 'crawl':
+		text = "[center][color=red]Only able to Crawl.\nAttack and Speed Penalties in Combat.\nWill not Join the Party.\nUnable to work many jobs.[/color][/center]\n$name is currently crawling on the ground on all fours.\n\n"
+	elif partyselectedchar.movement == 'none':
+		text = "[center][color=red]Unable to Move.\nAttack and Speed Penalties in Combat.\nWill not Join the Party.\nUnable to work many jobs.[/color][/center]\n$name is currently unable to move at all. $He is currently completely incapacitated."
+	else:
+		text = "[center][color=red]Error[/color][/center]\n$name is somehow moving in an unnatural way. While interesting, you may want to report this to Aric on the itch.io forums or Discord. "
+	
+	#Give Reason for Crawling/Immobilized
+	text += "\n\nReason for Movement: " + PoolStringArray(partyselectedchar.movementreasons).join("\n")
+	
+	globals.showtooltip( partyselectedchar.dictionary(text))
+
+func _on_movement_mouse_exited():
 	globals.hidetooltip()
 
 func _on_closechar_pressed():
@@ -623,7 +644,7 @@ func marketsattext():
 	var extrazero = ".0"
 	var racetext
 	var marketrate = 1
-	sattext = "\n\nA sign board lists current relative pricing by race:\n"
+	sattext = "\nA Sign Board lists current relative pricing by race.\n\n[color=#d1b970]'Current Racial Pricing'[/color]\n"
 	for i in globals.races:
 		marketrate = round(globals.state.racemarketsat[i]*100)/100
 		racetext = i.replace('Beastkin', '')
@@ -817,9 +838,7 @@ func slaveguildslaves(location):
 	guildlocation = location
 	get_node("slavebuypanel").visible = true
 	#ralph
-	var cost = ceil(globals.spelldict.mindread.manacost * globals.expansionsettings.spellcost * 1.5)
-	if globals.state.spec == 'Mage' && globals.expansionsettings.mage_mana_reduction:
-		cost = cost/2
+	var cost = ceil(globals.spells.spellcost(globals.spelldict.mindread) * 1.5)
 	get_node("slavebuypanel/mindreadbutton").text = "Use Mind Read (" +str(cost)+ ")"
 	get_node("slavebuypanel/mindreadbutton").hint_tooltip = "Allows to see more information about all the slaves.\nCosts " +str(cost)+ " mana"
 	#/ralph
@@ -905,9 +924,7 @@ func selectslavebuy(person):
 
 
 func _on_mindreadbutton_pressed():
-	var cost = 5
-	if globals.state.spec == 'Mage':
-		cost = cost/2
+	var cost = ceil(globals.spells.spellcost(globals.spelldict.mindread) * 1.5)
 	globals.resources.mana -= cost
 	mindread = true
 	get_node("slavebuypanel/mindreadbutton").disabled = true
@@ -982,17 +999,15 @@ func _on_slavesellbutton_pressed():
 	#ralph5
 	racepricemod = globals.state.racemarketsat[selectedslave.race.replace('Halfkin', 'Beastkin')] #ralph5
 	racepricemodchange = (racepricemod - 0.5)*0.1 #the bigger the premium the more the premium will be decreased
-	#print("Pricemod for " + selectedslave.race + " is " + str(racepricemod))
 	racepricemod = clamp(racepricemod - racepricemodchange,0.5,5)
 	globals.state.racemarketsat[selectedslave.race] = racepricemod
-	#print("Sold 1 " + selectedslave.race + "   Pricemod decreased " + str(racepricemodchange) + " to " + str(racepricemod))
 	#/ralph5
 	if selectedslave.obed >= 90 && selectedslave.fromguild == false && selectedslave.effects.has('captured') == false:
 		upgradefromslave = true
 		###---Added by Expansion---###
 		globals.expansion.updatePerson(selectedslave)
 		if selectedslave.npcexpanded.mansionbred == true && globals.state.spec == 'Breeder':
-			globals.resources.upgradepoints += (globals.originsarray.find(selectedslave.origins)+1)*globals.expansionsettings.mansion_bred_and_breeder
+			globals.resources.upgradepoints += round((globals.originsarray.find(selectedslave.origins)+1)*globals.expansionsettings.mansion_bred_and_breeder)
 		elif selectedslave.npcexpanded.mansionbred == true:
 			globals.resources.upgradepoints += round((globals.originsarray.find(selectedslave.origins)+1)*1.25)
 		else:
@@ -1000,11 +1015,10 @@ func _on_slavesellbutton_pressed():
 		###---End Expansion---###
 	elif guildlocation in ['sebastian','umbra'] && selectedslave.fromguild == false:
 		upgradefromslave = true
-		globals.resources.upgradepoints += globals.originsarray.find(selectedslave.origins)+1
 		###---Added by Expansion---### Person Expanded / Breeder Specialty
 		globals.expansion.updatePerson(selectedslave)
 		if selectedslave.npcexpanded.mansionbred == true && globals.state.spec == 'Breeder':
-			globals.resources.upgradepoints += (globals.originsarray.find(selectedslave.origins)+1)*globals.expansionsettings.mansion_bred_and_breeder
+			globals.resources.upgradepoints += round((globals.originsarray.find(selectedslave.origins)+1)*globals.expansionsettings.mansion_bred_and_breeder)
 		elif selectedslave.npcexpanded.mansionbred == true:
 			globals.resources.upgradepoints += round((globals.originsarray.find(selectedslave.origins)+1)*1.25)
 		else:
@@ -1021,7 +1035,7 @@ func _on_slavesellbutton_pressed():
 				reputationloss[1][1] += 10
 			###---End Expansion---###
 			reputationloss = globals.weightedrandom(reputationloss)
-			globals.state.reputation[reputationloss] -= globals.expansionsettings.reputation_loss
+			globals.state.reputation[reputationloss] += globals.expansionsettings.reputation_loss
 			text += "[color=yellow]Your reputation has suffered from this deal. [/color]\n"
 	if globals.guildslaves.has(guildlocation):
 		globals.guildslaves[guildlocation].append(selectedslave)
@@ -1604,7 +1618,7 @@ var operationdict = {
 		code = 'abortion',
 		name = 'Commit Abortion',
 		number = 2,
-		reqs = "person.preg.duration >= variables.pregduration/6",
+		reqs = "person.preg.duration >= globals.state.pregduration/6",
 		description = "[color=yellow]Stops pregnancy. [/color] ",
 		price = 75,
 		confirm = "You leave $name in the custody of guild's specialists. As $his pregnancy ends, you can notice how $name looks considerably more stressed."
@@ -2059,7 +2073,7 @@ var shops = {
 		code = 'wimbornmarket',
 		sprite = 'merchant',
 		name = "Wimborn's Market",
-		items = ['teleportwimborn','food','supply','bandage','rope','torch','teleportseal', 'basicsolutioning','hairdye', 'aphrodisiac' ,'beautypot', 'magicessenceing', 'natureessenceing','armorleather','armorchain','weapondagger','weaponsword','weaponceremonialsword','clothsundress','clothmaid','clothbutler','underwearlacy','underwearboxers', 'acctravelbag'],
+		items = ['teleportwimborn','food','supply','bandage','rope','torch','teleportseal', 'basicsolutioning','hairdye', 'aphrodisiac' ,'beautypot', 'magicessenceing', 'natureessenceing','armorleather','armorchain','weapondagger','weaponserrateddagger','weaponbasicstaff','weaponsword','weaponceremonialsword','clothsundress','clothmaid','clothbutler','underwearlacy','underwearboxers', 'acctravelbag'],
 		selling = true
 	},
 	shaliqshop = {
@@ -2591,12 +2605,13 @@ func brothelservices():
 		text += "\n\n[color=yellow]—Both girls are just 50 gold each for the next half-hour.[/color]"
 	else:
 		text += "\n\n[color=yellow]—She is just 50 gold for the next half-hour.[/color]"
+	text += "\nShe holds a parchment out towards you with the prices listed.\n\n[color=#d1b970]'Cost of Pleasure'[/color]\nDark Elf | -50 gold for +10 mana\nFairy | -50 gold for +25 energy"
 	var counter = 0
 	
 	mansion.maintext = text
-	var array = [{name = 'Choose the Dark Elf | -50 gold & +10 mana', function = 'brothelservicesmana'},{name = 'No thanks', function = 'brothel'}]
+	var array = [{name = 'Choose the sensual Dark Elf', function = 'brothelservicesmana'},{name = 'No thanks', function = 'brothel'}]
 	if globals.player.energy < 100:
-		array.insert(0,{name = 'Choose the perky Fairy | -50 gold & +25 energy', function = 'brothelservicesenergy'})
+		array.insert(0,{name = 'Choose the energetic Fairy', function = 'brothelservicesenergy'})
 	buildbuttons(array)
 
 func brothelservicesenergy():
@@ -2792,13 +2807,7 @@ func itembackpackselect(item):
 		get_node("playergroupdetails/Panel/usebutton").set_disabled(true)
 	var text ='[center]' + item.name + '[/center]\n' + item.description + '\n\nWeight: ' + str(item.weight)
 	if item.code == 'teleportseal' && partyselectedslave == globals.player:
-		if globals.state.playergroup.empty():
-			if globals.state.capturedgroup.empty():
-				text += '\n\n[color=#ff4949]If you had brought a party, they would take time to return home on their own, while transporting your captured slaves. [/color]'
-			else:
-				text += '\n\n[color=#ff4949]Your captured slaves will be freed. If you had brought a party, they would be transported by your party. [/color]'
-		else:
-			text += '\n\n[color=#ff4949]Your party will take time to return home on their own, while transporting your captured slaves. [/color]'
+		text += '\n\n[color=yellow]You can choose to teleport alone, with your party or with your captured slaves, if you have enough teleport seals. [/color]'
 	get_node("playergroupdetails/Panel/itemdescript").set_bbcode(text)
 
 func spellbackpackselect(spell):
@@ -2822,35 +2831,107 @@ func spellbackpackselect(spell):
 	get_node("playergroupdetails/Panel/itemdescript").set_bbcode(text)
 
 
+var teleport_seals_used = 0
+
+func teleport_finale():
+	main.close_dialogue()
+	_on_closegroup_pressed()
+	if teleport_seals_used > 0:
+		globals.state.backpack.stackables['teleportseal'] -= teleport_seals_used
+		globals.main.sound("teleport")
+		main.exploration.deeperregion = false
+		mansion()
+	else:
+		playergrouppanel()
+		_on_details_pressed()
+
+
+func teleportseal_player_self():
+	teleport_seals_used = 1
+	if globals.state.playergroup.empty():
+		if globals.state.capturedgroup.empty():
+			main.popup("After activating Teleportation Seal, you appear inside of your mansion. ")
+		else:
+			main.popup("After activating Teleportation Seal, you appear inside of your mansion, leaving your captives behind to free themselves. ")
+	else:
+		main.popup("After activating Teleportation Seal, you appear inside of your mansion, leaving your party behind. Hopefully they will find a way back in the near future. ")
+		var away = round(rand_range(1,3))
+		for i in globals.state.playergroup:
+			var temp = globals.state.findslave(i)
+			temp.away.duration = away
+			temp.away.at = 'travel back'
+		for temp in globals.state.capturedgroup:
+			globals.slaves = temp
+			temp.away.duration = away
+			temp.away.at = 'transported back'
+	globals.state.capturedgroup.clear()
+	teleport_finale()
+
+
+func teleportseal_player_party():
+	teleport_seals_used = 1 + globals.state.playergroup.size()
+	if globals.state.capturedgroup.empty():
+		main.popup("After activating Teleportation Seals, you and your party appear inside of your mansion. ")
+	else:
+		main.popup("After activating Teleportation Seals, you and your party appear inside of your mansion, leaving your captives behind to free themselves. ")
+	globals.state.capturedgroup.clear()
+	teleport_finale()
+
+
+func teleportseal_player_party_slaves():
+	teleport_seals_used = 1 + globals.state.playergroup.size() + globals.state.capturedgroup.size()
+	if globals.state.playergroup.empty():
+		main.popup("After activating Teleportation Seals, you and your new slaves appear inside of your mansion. ")
+	else:
+		main.popup("After activating Teleportation Seals, you, your party and your new slaves appear inside of your mansion. ")
+	teleport_finale()
+
+
+func teleportseal_player():
+	var text = ''
+	var buttons = []
+	var partysize = globals.state.playergroup.size()
+	var capturedsize = globals.state.capturedgroup.size()
+	var sealcount = globals.state.backpack.stackables['teleportseal']
+	var not_enough_seals = 'You need %d teleport seals for teleporting everyone.'
+	var have_seals = 'Use %d teleport seals.'
+	teleport_seals_used = 0
+	if partysize == 0 and capturedsize == 0:
+		teleportseal_player_self()
+	else:
+		if partysize == 0:
+			text = 'You can teleport yourself and leave your captives behind; or you can teleport with all slaves. '
+		else:
+			if capturedsize == 0:
+				text = 'You can teleport yourself and leave your party to find their way back; or you can teleport everyone. '
+			else:
+				text = 'You can teleport yourself and leave your party to find their way back with slaves; you can teleport yourself and party and leave your captives behind; or you can teleport everyone. '
+		buttons.append({text = 'Teleport yourself', function = 'teleportseal_player_self', tooltip = 'Use 1 teleport seal.'})
+		if partysize > 0:
+			var seals_needed = partysize + 1
+			var enabled = sealcount >= seals_needed
+			var tip = (have_seals if enabled else not_enough_seals) % seals_needed # Godot ternary operator is: [true] if [condition] else [false]
+			buttons.append({text = 'Teleport with party', function = 'teleportseal_player_party', disabled = not enabled, tooltip = tip})
+		if capturedsize > 0:
+			var seals_needed = partysize + capturedsize + 1
+			var enabled = sealcount >= seals_needed
+			var tip = (have_seals if enabled else not_enough_seals) % seals_needed # Godot ternary operator is: [true] if [condition] else [false]
+			buttons.append({text = 'Teleport everyone', function = 'teleportseal_player_party_slaves', disabled = not enabled, tooltip = tip})
+		var dialogue_node = main.get_node("dialogue")
+		main.dialogue(true, self, text, buttons)
+
+
 func useitem(item, person):
 	globals.items.person = person
+	if item.code == 'teleportseal' and person == globals.player:
+		teleportseal_player()
+		return
 	globals.state.backpack.stackables[item.code] -= 1
 	if item.code == 'bandage':
 		globals.items.call(item.effect)
 	elif item.code == 'teleportseal':
 		if person == globals.player:
-			_on_closegroup_pressed()
-			if globals.state.playergroup.empty():
-				if globals.state.capturedgroup.empty():
-					get_parent().popup("After activating Teleportation Seal, you appear inside of your mansion. ")
-				else:
-					get_parent().popup("After activating Teleportation Seal, you appear inside of your mansion, leaving your captives behind to free themselves. ")
-			else:
-				get_parent().popup("After activating Teleportation Seal, you appear inside of your mansion, leaving your party behind. Hopefully they will find a way back in the near future. ")
-				var away = round(rand_range(1,3))
-				for i in globals.state.playergroup:
-					var temp = globals.state.findslave(i)
-					temp.away.duration = away
-					temp.away.at = 'travel back'
-				for temp in globals.state.capturedgroup:
-					globals.slaves = temp
-					temp.away.duration = away
-					temp.away.at = 'transported back'
-			globals.state.capturedgroup.clear()
-			globals.main.sound("teleport")
-			main.exploration.deeperregion = false
-			mansion()
-			return
+			assert(false)
 		elif globals.slaves.find(person) >= 0:
 			get_parent().popup(person.dictionary("After activating Teleportation Seal, $name slowly dissipates in bright sparkles."))
 			globals.state.playergroup.erase(person.id)
@@ -2989,7 +3070,7 @@ func _on_bountysell_pressed():
 	var bountycount = 0
 	var norewards = true #determines if alt text for no collections is to be used
 	var bountycrime = ""
-	var location = ''
+	var location = globals.state.location #ralphD
 	var array = []
 	var array_lowcrime = []
 	var array_midcrime = []
@@ -3115,6 +3196,7 @@ func _on_bountysell_pressed():
 	main.popup(str(text))
 	globals.state.backpack.stackables.rope = globals.state.backpack.stackables.get('rope', 0) + globals.state.calcRecoverRope(array.size()) #ralphA
 	globals.resources.gold += gold
+	globals.state.bountiescollected[location] += bountycount #ralphD	
 	reputationgain(repgaincount)
 	for i in array: #erase them all so they won't reappear, just like quicksell
 		globals.state.capturedgroup.erase(i)
@@ -3160,8 +3242,13 @@ func chosepartymember(includeplayer = true, targetfunc = [null,null], reqs = 'tr
 	var array = []
 	if includeplayer:
 		array.append(globals.player)
-	for i in globals.state.playergroup:
-		array.append(globals.state.findslave(i))
+	if execfunc[1] == "chestmouselockpick":
+		for i in globals.state.playergroup:
+			if globals.state.findslave(i).race.find('Mouse') >= 0:
+				array.append(globals.state.findslave(i))
+	else:
+		for i in globals.state.playergroup:
+			array.append(globals.state.findslave(i))
 	for i in $choseparty/HBoxContainer.get_children():
 		if i.name != 'Button':
 			i.hide()

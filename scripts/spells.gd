@@ -102,7 +102,7 @@ var spelllist = {
 	entrancement = {
 		code = 'entrancement',
 		name = 'Entrancement',
-		description = 'Makes target more susceptible to suggestions and easier to acquire various kinks.',
+		description = 'Makes target more susceptible to suggestions. Kinks, Fetishes, and Consent are easier to manipulate.',
 		effect = 'entrancementeffect',
 		manacost = 15,
 		req = 10,
@@ -272,42 +272,51 @@ var spelllist = {
 ###---End Expansion---###
 }
 
-func spellcost(spell):
-	var cost = spell.manacost
+func spellCostCalc(cost):
 	if globals.state.spec == 'Mage' && globals.expansionsettings.mage_mana_reduction:
 		cost = cost/2
 	return cost*globals.expansionsettings.spellcost
+	
+func spellcost(spell):
+	return spellCostCalc(spell.manacost)
 
 func mindreadeffect():
 	var spell = globals.spelldict.mindread
 	var text = ''
 	globals.resources.mana -= spellcost(spell)
-	###---Added by Expansion---### Colored
+	###---Added by Expansion---### Colored / Legibility; 
 	text = "You peer into $name's soul. "
 	if person.effects.has('captured') == true:
 		text = text + "\n[color=red]\n$name doesn't accept $his new life in your domain. (Rebelling: " + str(person.effects.captured.duration) + ")[/color]"
-	text += "\n$He is of " + person.origins + " origins. \nObedience: " + str(round(person.obed)) + ", Fear: " + str(person.fear) + ', Stress: '+ str(round(person.stress)) + ', Loyalty: ' + str(round(person.loyal)) + ', Lust: '+ str(round(person.lust)) + ', Courage: ' + str(round(person.cour)) + ', Confidence: ' + str(round(person.conf)) + ', Wit: '+ str(round(person.wit)) + ', Charm: ' + str(round(person.charm)) + ", Toxicity: " + str(floor(person.toxicity)) + ", Lewdness: " + str(floor(person.lewdness)) + ", Role Preference: " + str(floor(person.asser))
-	text += "\nStrength: " + str(person.sstr) + ", Agility: " + str(person.sagi) + ", Magic Affinity: " + str(person.smaf) + ", Endurance: " + str(person.send)
-	text += "\nBase Beauty: " + str(person.beautybase) + ', Temporal Beauty: ' + str(person.beautytemp)
+	text += "\n\n$He is of [color=aqua]" + person.origins.capitalize() + "[/color] origins.\nStrength: " + str(person.sstr) + ", Agility: " + str(person.sagi) + ", Magic Affinity: " + str(person.smaf) + ", Endurance: " + str(person.send)
+	text += "\nBase Beauty: " + str(person.beautybase) + ', Temporal (Temporary) Beauty: ' + str(person.beautytemp)
+	text += "\nObedience: " + str(round(person.obed)) + ", Fear: " + str(person.fear) + ', Stress: '+ str(round(person.stress)) + ', Loyalty: ' + str(round(person.loyal)) + ', Lust: '+ str(round(person.lust)) + ', Courage: ' + str(round(person.cour)) + ', Confidence: ' + str(round(person.conf)) + ', Wit: '+ str(round(person.wit)) + ', Charm: ' + str(round(person.charm)) + ", Toxicity: " + str(floor(person.toxicity)) + ", Lewdness: " + str(floor(person.lewdness)) + ", Role Preference: " + str(floor(person.asser))
 	if person.traits.size() >= 0:
 		text += '\n\n$name has corresponding traits: [color=aqua]'
 		for i in person.traits:
-			text += ' ' + i
-		text += '[/color].'
+			text += '\n' + i
+		text += '[/color]'
+	#Trait Storage
+	if !person.traitstorage.empty():
+		text += "\nYou also sense the following traits buried deep within $him. $He may pass these down to $his offspring, but $he will likely never know that $he carried these.[color=aqua]"
+		for i in person.traitstorage:
+			text += "\n" + i
+		text += "[/color]"
 	if person.preg.duration > 0:
 		text += "\nPregnancy: " + str(person.preg.duration)
 		if !person.knowledge.has('currentpregnancy') && !person.mind.secrets.has('currentpregnancy'):
 			text += "\n$He doesn't even know that $he is having this baby yet. "
 		if person.pregexp.wantedpregnancy == true:
-			text += "\n[center][color=green]She wants this baby, won't resist her bodily changes, and will not be as stressed by those changes.[/color][/center]\n\n"
+			text += "\n[center][color=green]She wants this baby, won't resist her bodily changes, and will not be as stressed by those changes.[/color][/center]"
 		else:
-			text += "\n[center][color=red]She doesn't want this baby and the pregnancy will be more stressful for her as she resists the changes her body goes through.[/color][/center]\n\n"
+			text += "\n[center][color=red]She doesn't want this baby and the pregnancy will be more stressful for her as she resists the changes her body goes through.[/color][/center]"
 	###---End Expansion---###
 	if person.lastsexday != 0:
-		text += "\n$name had sex last time " + str(globals.resources.day - person.lastsexday) + " day(s) ago"
+		text += "\n\n$name had sex last time " + str(globals.resources.day - person.lastsexday) + " day(s) ago"
 	###---Added by Expansion---### NPC Expanded
+	text += "\n\n[center][color=#d1b970]History[/color][/center]"
 	if person.npcexpanded.timesmet > 0:
-		text += "\n\nYou have met $him before [color=aqua]"+str(person.npcexpanded.timesmet)+"[/color] times. "
+		text += "\nYou have met $him before [color=aqua]"+str(person.npcexpanded.timesmet)+"[/color] times. "
 	if person.npcexpanded.timesfought > 0:
 		text += "\nYou have fought and beaten $him [color=red]"+str(person.npcexpanded.timesfought)+"[/color] times. "
 	if person.npcexpanded.timesrescued > 0:
@@ -316,6 +325,30 @@ func mindreadeffect():
 		text += "\nYou have raped $him before [color=red]"+str(person.npcexpanded.timesraped)+"[/color] times. "
 	if person.npcexpanded.timesreleased > 0:
 		text += "\nYou freed $him [color=aqua]"+str(person.npcexpanded.timesreleased)+"[/color] times. "
+	if person.npcexpanded.timesreleased == 0 && person.npcexpanded.timesraped == 0 && person.npcexpanded.timesrescued == 0 && person.npcexpanded.timesfought == 0 && person.npcexpanded.timesmet == 0:
+		text += "\nYou have no prior history together."
+	#Vice Discovery
+	var envytarget = globals.expansion.getBestSlave()
+	if person.mind.vice_known == false:
+		if globals.expansionsettings.vices_discovery_has_to_present_first == false || globals.expansionsettings.vices_discovery_has_to_present_first == true && person.mind.vice_presented == true:
+			var vice_text = person.revealVice(person.mind.vice)
+			var vice_discoverychance = (globals.player.smaf*10) + (person.dailyevents.count(person.mind.vice)*10)
+			if person.mind.vice_presented == true:
+				vice_discoverychance += globals.expansionsettings.vices_discovery_presentation_bonus
+			if vice_text == "":
+				text += "\n\nYou sense $him resisting your mental probing. It seems there is an internal weakness or [color=aqua]Vice[/color] that $he is subconsciousnessly desparate to hide from you. You feel you may be able to break this resistance down if you continued to cast this on $him.\n\nYou currently have a [color=aqua]" + str(vice_discoverychance) + " Percent[/color] to break this resistance."
+			else:
+				text += "\n" + vice_text
+				if person.checkVice('envy'):
+					text += "\nSlave Currently considered Favored: [color=aqua]"+ envytarget.dictionary("$name") +"[/color]"
+	else:
+		text += "\n\n[center][color=#d1b970]Vice[/color][/center]\n$His [color=aqua]Vice[/color] is [color=aqua]"+ str(person.mind.vice.capitalize()) +"[/color]"
+		if person.checkVice('envy'):
+			text += "\nCurrent Favored Slave (Target of Envy): [color=aqua]"+ envytarget.dictionary("$name") +"[/color]"
+	#Luxury
+	var luxurydict = person.countluxury(false)
+	var luxuryreq = str(person.calculateluxury())
+	text += "\n\n[center][color=#d1b970]Luxury[/color][/center]\nCurrent Luxury: "+ globals.fastif(int(luxurydict.luxury) >= int(luxuryreq), "[color=lime]","[color=red]") + str(luxurydict.luxury) +"[/color]  |  Current Luxury Requirement: [color=aqua]"+ luxuryreq +"[/color]"
 	###---End Expansion---###
 	text = person.dictionary(text)
 	return text
@@ -333,7 +366,7 @@ var dictChangeParts = {
 }
 
 func invigorateeffect():
-	if globals.useRalphsTweaks:
+	if globals.useRalphsTweaks && globals.expansionsettings.ralphs_tweaks_partial.tweak_invigorate:
 		return invigorateeffect_Ralphs()
 	var text = ''
 	var spell = globals.spelldict.invigorate
@@ -365,6 +398,21 @@ func invigorateeffect_Ralphs():
 	return text
 #/ralph
 
+func entrancementeffect():
+	var text = ''
+	var spell = globals.spelldict.entrancement
+	var exists = false
+#	globals.resources.mana -= spellcost(spell)
+	if person.effects.has('entranced') == false:
+		###---Added by Expansion---### Entrancement Expanded
+		globals.resources.mana -= spellcost(spell)
+		text = "$name's eyes "+ globals.randomitemfromarray(['dialate','slowly spin','half-close','drift lazily','glaze over','become unable to focus on anything','cross slightly','go listless','glow faintly violet','grow dim']) +". $He seems ready to accept whatever you tell $him. The next suggestion you give him, whether a request for [color=aqua]Consent[/color], [color=aqua]Fetish[/color] changes, or [color=aqua]Number of Children Wanted[/color], $he will fully accept. This will consume the mana flowing through $him and end the trance, however. "
+		###---End Expansion---###
+		person.add_effect(globals.effectdict.entranced)
+	else:
+		text = "It seems like $name is already entranced. "
+	return person.dictionary(text)
+
 func feareffect():
 	var text = "You grab hold of $name's shoulders and hold $his gaze. At first, $he’s calm, but the longer you stare into $his eyes, the more $he trembles in fear. Soon, panic takes over $his stare. "
 	var spell = globals.spelldict.fear
@@ -373,7 +421,7 @@ func feareffect():
 	person.stress += max(5, 20-caster.smaf*3)
 	if person.effects.has('captured') == true:
 		text += "\n[color=green]$name becomes less rebellious towards you.[/color]"
-		person.effects.captured.duration -= 1+globals.player.smaf/globals.expansionsettings.reduce_rebellion_with_fear
+		person.effects.captured.duration -= floor(1+globals.player.smaf/globals.expansionsettings.reduce_rebellion_with_fear)
 	text = (person.dictionary(text))
 	return text
 

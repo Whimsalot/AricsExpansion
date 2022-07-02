@@ -2,6 +2,13 @@ extends Node
 
 
 var enemygrouppools = {
+	#ralphD
+	noenemyencountered = {
+		units = [['wolf',1,1]], awareness = -10, captured = null, special = 'noenemyencountered',
+		description = 'You should not see [color=aqua]this[/color].',
+		descriptionambush = '',
+	},
+	#/ralphD
 	treasurechest = {
 		units = [['wolf',1,1]], awareness = -10, captured = null, special = 'treasurechest',
 		description = 'You find a small [color=aqua]treasure chest[/color].',
@@ -102,6 +109,11 @@ var enemygrouppools = {
 		description = "You spot a local [color=aqua]patrol of elven warriors[/color] scouting the surroundings. Surely, they won't be happy with trespassers as this is elven territory. ", #Removed Tribal to avoid confusion
 		descriptionambush = 'You are attacked by a [color=aqua]small group of elven warriors[/color]. ',
 	},
+	lizardfolkpatrol = {
+		units = [['lizardfolkwarrior',2,4]], awareness = 15, captured = null, special = null,
+		description = "You spot a local [color=aqua]patrol of lizardfolk warriors[/color] surverying the marsh. They are very territorial, your transgression won't be appreciated. ",
+		descriptionambush = 'You are attacked by a [color=aqua]small group of lizardfolk warriors[/color]. ',
+	},
 	fairy = {
 		units = [['fairy',1,1]], awareness = -10, captured = null, special = null,
 		description = 'You spot a lone [color=aqua]wild fairy $child[/color] floating through the woods. ',
@@ -135,6 +147,34 @@ var enemygrouppools = {
 	arachnaweb = {
 		units = [['arachna1',1,1],['spider',2,5]], awareness = -10, captured = ['webvictim'], special = null,
 		description = 'You freeze in your tracks and turn to see [color=aqua]Giant Spiders led by a wild Arachna[/color] spinning a [color=yellow]large cocoon[/color] containing some wayward traveler entangled in their webs. You could attack the humungous arachnids, but they will not give up their prize without a fight.',
+	},
+	delfvsgob1 = {
+		units = [['darkelf1',2,3],['goblin',3,7]], awareness = 20, captured = null, special = null,
+		description = 'You come upon [color=aqua]dark elves and goblins skirmishing[/color]. They seem intent on killing one another and are unaware of your presence as of yet. ',
+		descriptionambush = 'You walk right into the middle of a [color=aqua]pitched battle between goblins and dark elves[/color]. Despite their animosity toward one another, they must have some sort of pact because they charge at you together.',
+	},
+	delfattackers1 = {
+		units = [['darkelf1',2,3]], awareness = -10, captured = ['goblinvictim'], special = null,
+		description = 'You hear the ring of steel on steel and follow it to find [color=aqua]dark elves[/color] circling a [color=yellow]lone goblin survivor[/color] surrounded by the bodies of its peers. One of the dark elves prepares a finishing blow.',
+	},
+	delfattackers2 = {
+		units = [['darkelf1',2,4],['cougarmount',3,7]], awareness = 40, captured = null, special = null,
+		description = 'You spot a [color=aqua]group of dark elf guards[/color] patrolling the tunnels mounted on [color=aqua]massive cougars[/color]. You remain hidden for the moment.',
+		descriptionambush = "A [color=aqua]group of dark elf guards[/color] takes your party by surprise, barreling through the caves at you while mounted on [color=aqua]massive cougars[/color]. You are not certain when you strayed into their territory, but these dark elves will not tolerate your invasion.",
+	},
+	delffew = {
+		units = [['darkelf1',2,4]], awareness = -10, captured = null, special = null, escape = 50,
+		description = 'You spot a [color=aqua]small group of dark elves[/color] walking through the caves. ',
+		descriptionescape = "A group of dark elves escapes from you before you can get close to them. How many more have been watching you from the darkness?",
+	},
+	goblinattackers1 = {
+		units = [['goblin',3,6],['ooze',3,6]], awareness = 30, captured = null, special = null,
+		description = 'You smell the [color=aqua]filthy cave goblins[/color] before you see them. They appear to be watching over a [color=aqua]quivering mass of oozes[/color]. You remain hidden for the moment.',
+		descriptionambush = "A [color=aqua]group of goblins[/color] ambushes and harries you right into a [color=aqua]mass of oozes[/color]. The goblins have prepared a lethal trap, and you've fallen right into it.",
+	},
+	goblinattackers2 = {
+		units = [['goblin',3,6]], awareness = -10, captured = ['delfvictim'], special = null,
+		description = 'You come upon a [color=aqua]group of slavering goblins[/color] cackling and looking down upon a prone [color=yellow]young dark elf[/color] who must have strayed too close to goblin territory. It is unclear whether they intend to rape or devour their victim.',
 	},
 	#/ralphA
 	goblingroup = {
@@ -387,6 +427,20 @@ var capturespool = {
 		capturesex = ['any'],
 		faction = 'stranger',
 	},
+	goblinvictim = {
+		capturerace = [['Goblin',1]],
+		captureoriginspool = [{value = 'poor', weight = 1},{value = 'slave', weight = 1}],
+		captureagepool = [{value = 'child', weight = 2},{value = 'teen', weight = 5}, {value = 'adult', weight = 4}],
+		capturesex = ['any'],
+		faction = 'stranger',
+	},
+	delfvictim = {
+		capturerace = [['Dark Elf',1]],
+		captureoriginspool = [{value = 'poor', weight = 2},{value = 'commoner', weight = 1}],
+		captureagepool = [{value = 'child', weight = 2},{value = 'teen', weight = 1}],
+		capturesex = ['any'],
+		faction = 'stranger',
+	},
 	#/ralphA
 	slavervictim = {
 		capturerace = ['area'],
@@ -497,6 +551,20 @@ var enemypool = {
 		stats = {health = 60, power = 13, speed = 20, energy = 50, armor = 1, magic = 0, abilities = ['attack'], passives = ['doubleattack15']},
 		skills = [],
 	},
+	cougarmount = {
+		name = 'Cougar',
+		code = 'cougar',
+		faction = 'animal',
+		icon = load("res://files/images/enemies/cougar.png"),
+		special = null,
+		capture = null,
+		level = 8,
+		rewardpool = {bestialessenceing = 35},
+		rewardgold = 0,
+		rewardexp = 20,
+		stats = {health = 90, power = 25, speed = 30, energy = 50, armor = 2, magic = 0, abilities = ['attack'], passives = ['doubleattack15']},
+		skills = [],
+	},
 	spider = {
 		name = 'Giant Spider',
 		code = 'spider',
@@ -582,6 +650,24 @@ var enemypool = {
 		rewardexp = 30,
 		stats = {health = 90, power = 11, speed = 23, energy = 50, armor = 5, magic = 2, abilities = ['attack']},
 		gear = 'guard',
+		skills = [],
+	},
+	lizardfolkwarrior = {
+		name = 'Warrior',
+		code = 'lizardfolkwarrior',
+		capturerace = [['Lizardfolk',100]],
+		faction = 'monster',
+		icon = load("res://files/aric_expansion_images/enemies/swamplizardm_enemy.png"),
+		special = null,
+		capture = true,
+		captureoriginspool = [{value = 'rich', weight = 1},{value = 'commoner', weight = 4},{value = 'poor', weight = 10}],
+		captureagepool = [{value = 'teen', weight = 2}, {value = 'adult', weight = 6}],
+		capturesex = ['any'],
+		rewardpool = {gold = 20, supply = 35},
+		rewardgold = [1,5],
+		rewardexp = 35,
+		stats = {health = 85, power = 10, speed = 18, energy = 50, armor = 6, magic = 0, abilities = ['attack']},
+		gear = 'marsh',
 		skills = [],
 	},
 	investigator = {
@@ -881,6 +967,24 @@ var enemypool = {
 		gear = 'forest',
 		skills = [],
 	},
+	darkelf1 = {
+		name = 'Dark Elf',
+		code = 'darkelf1',
+		faction = 'monster',
+		icon = load("res://files/images/enemies/elfguard.png"),
+		special = '',
+		capture = true,
+		capturerace = [['Dark Elf',100]],
+		captureoriginspool = [{value = 'slave', weight = 1},{value = 'poor', weight = 3}],
+		captureagepool = [{value = 'teen', weight = 1}, {value = 'adult', weight = 3}],
+		capturesex = ['any'],
+		rewardpool = {gold = 20, supply = 35},
+		rewardgold = [1,5],
+		rewardexp = 30,
+		stats = {health = 65, power = 6, speed = 18, energy = 50, armor = 2, magic = 0, abilities = ['attack']},
+		gear = 'elfs',
+		skills = [],
+	},
 	#/ralphA
 	#ralph4
 	dryad2 = {
@@ -1132,7 +1236,7 @@ var enemypool = {
 		name = 'An Elf Leader',
 		code = 'ivran',
 		faction = 'elf',
-		icon = null,
+		icon = load("res://files/aric_expansion_images/characters/ivranenemyicon.png"),
 		special = null,
 		capture = true,
 		capturerace = [['Tribal Elf',100]],
@@ -1367,24 +1471,24 @@ var enemypool = {
 var enemyequips = {
 	weakbandits = {
 		armor = [['nothing', 10], ['armorleather',10], ['armorchain', 1], ['armorleather+', 1],['armorpadded', 5]],
-		weapon = [['weapondagger',10], ['weaponsword', 2], ['weapondagger+', 2]],
+		weapon = [['weapondagger',10], ['weaponbasicstaff',5], ['weaponserrateddagger', 2], ['weaponsword', 2], ['weapondagger+', 2], ['weaponbasicstaff+',2]],
 		abilities = [],
 	},
 	medbandits = {
 		armor = [['armorleather+',3], ['armorchain', 3], ['armorchain+', 1], ['armorninja', 0.5], ['armorrogue', 0.1],['armorpadded', 5],['armorpadded+', 1],['armorhalfplate',1]],
-		weapon = [['weaponsword', 4], ['weaponsword+', 1], ['weapondagger+', 2], ['weaponhammer', 0.1]],
+		weapon = [['weaponsword', 4], ['weaponsword+', 1], ['weaponbasicstaff+',2], ['weaponserrateddagger', 4], ['weapondagger+', 2], ['weaponserrateddagger+', 1], ['weaponhammer', 0.1]],
 		accessory = [['accamuletruby', 1], ['nothing',10]],
 		abilities = [],
 	},
 	strongbandits = {
 		armor = [['armorchain', 8], ['armorchain+', 2], ['armorninja', 1], ['armorninja+', 0.1], ['armorrogue', 0.2], ['armorplate', 0.5], ['armorplate+', 0.1],['armorhalfplate',1]],
-		weapon = [['weaponsword', 4], ['weaponsword+', 1], ['weaponclaymore', 2], ['weaponclaymore+', 0.3], ['weaponhammer', 1], ['weaponhammer+', 0.2]],
+		weapon = [['weaponsword', 4], ['weaponsword+', 1], ['weaponbasicstaff+',2], ['weaponserrateddagger', 4], ['weaponserrateddagger+', 1], ['weaponclaymore', 2], ['weaponclaymore+', 0.3], ['weaponhammer', 1], ['weaponhammer+', 0.2]],
 		accessory = [['accamuletruby', 1], ['accamuletemerald',1], ['accamuletruby+', 0.3], ['accamuletemerald+',0.3]],
 		abilities = [],
 	},
 	elfs = {
 		armor = [['armorchain', 3], ['armorchain+', 1], ['armorelvenchain', 10], ['armorelvenchain+', 2],['armorelvenhalfplate', 0.25], ['armorelvenhalfplate+', 0.1]],
-		weapon = [['weaponelvensword', 4], ['weaponelvensword+', 1], ['weapondagger+', 2],['weaponancientsword', 4], ['weaponancientsword+',0.5]],
+		weapon = [['weaponelvensword', 4], ['weaponelvensword+', 1], ['weapondagger+', 2], ['weaponserrateddagger+', 2], ['weaponancientsword', 4], ['weaponancientsword+',0.5]],
 		accessory = [['accamuletemerald', 1], ['accamuletemerald+', 1],['accelvenboots', 1],['nothing',10]],
 		abilities = [],
 	},
@@ -1395,7 +1499,13 @@ var enemyequips = {
 	},
 	forest = {
 		armor = [['armorleather',10], ['armorleather+', 3]],
-		weapon = [['nothing', 5],['weapondagger+', 3],['weaponnaturestaff', 2],['weaponnaturestaff', 0.5]],
+		weapon = [['nothing', 5],['weapondagger+', 3],['weaponnaturestaff', 2],['weaponnaturestaff+', 0.5]],
+		accessory = [['accamuletemerald', 1], ['accamuletemerald+', 0.2],['nothing',3]],
+		abilities = [],
+	},
+	marsh = {
+		armor = [['armorleather',10], ['armorleather+', 3]],
+		weapon = [['nothing', 5], ['weaponsword+', 3], ['weaponserrateddagger+', 3], ['weaponnaturestaff', 2], ['weaponnaturestaff+', 0.5]],
 		accessory = [['accamuletemerald', 1], ['accamuletemerald+', 0.2],['nothing',3]],
 		abilities = [],
 	},

@@ -1,21 +1,156 @@
 
+var racebonusdict = {
+	human = {descript = 'Reputation with Wimborn increased'},
+	elf = {descript = 'Start with +1 Magic Affinity'},
+	"tribal elf" : {descript = 'Start with +1 Agility'},
+	orc = {descript = 'Reputation with Gorn increased'},
+	demon = {descript = 'Start with +1 unassigned Skillpoint, all starting reputation lowered slightly'},
+	beastkin = {descript = 'Reputation with Frostford increased'},
+	halfkin = {descript = 'All starting reputation increased slightly'},
+	taurus = {descript = 'Start with +1 Endurance'},
+	kobold = {descript = 'Start with +1 Agility'},
+	gnoll = {descript = 'Start with +1 Strength'},
+	avali = {descript = 'Start with +1 Magic Affinity'},
+}
+
+var skindict = {
+	human = [ 'pale', 'fair', 'olive', 'tan', 'brown', 'dark' ],
+	kobold = ['none'],
+	dragonkin = ['scales'],
+	lizardfolk = ['none'],
+	avali = ['none'],
+	drow = ['blue', 'purple', 'pale blue'],
+	orc = ['green'],
+	goblin = ['green'],
+	dryad = ['green'],
+	slime = ['jelly'],
+	nereid = ['teal', 'blue', 'pale blue']
+}
+
+var horndict = {
+	human = ['none'],
+	demon = ['short', 'long_straight', 'curved'],
+	dragonkin = ['short', 'long_straight', 'curved', 'manyhorned',],
+	lizardfolk = ['short', 'long_straight', 'curved', 'manyhorned'],
+	kobold = ['short', 'long_straight', 'curved', 'manyhorned'],
+	taurus = ['long_straight'],
+}
+
+var scaledict = {
+	human = ['none'],
+	dragonkin = ['red', 'blue', 'white', 'green', 'black', 'yellow'],
+	lizardfolk = ['red', 'blue', 'white', 'green', 'black', 'yellow'],
+	kobold = ['red', 'blue', 'white', 'green', 'black', 'yellow'],
+}
+
+var feathercolordict = {
+	"human" : ['none'],
+	"harpy" : ['white', 'black', 'brown',],
+	"beastkin bird" : ['white', 'black', 'brown',],
+	"avali" : ['white', 'black', 'brown',],
+}
+
+var eardict = {
+	elf = ['pointy'],
+	"dark elf" : ['pointy'],
+	drow = ['pointy'],
+	orc = ['pointy'],
+	goblin = ['pointy'],
+	fairy = ['pointy'],
+	seraph = ['pointy'],
+	dryad = ['pointy'],
+	slime = ['none'],
+	lamia = ['pointy'],
+	harpy = ['feathery'],
+	arachna = ['pointy'],
+	scylla = ['pointy'],
+	cat	= ['short_furry'],
+	fox = ['long_pointy_furry'],
+	wolf = ['short_furry'],
+	bunny = ['long_round_furry', 'long_droopy_furry'],
+	raccoon = ['short_furry'],
+	centaur = ['short_furry'],
+	nereid = ['fins'],
+	demon = ['pointy'],
+	dragonkin = ['pointy'],
+	lizardfolk = ['short_reptilian','pointy', 'frilled','none','long_round_reptilian','long_droopy_reptilian','long_pointy_reptilian'],
+	kobold = ['short_reptilian','pointy', 'frilled','none','long_round_reptilian','long_droopy_reptilian','long_pointy_reptilian'],
+	mouse = ['wide_furry'],
+	taurus = ['short_furry'],
+	gnoll = ['short_furry'],
+	squirrel = ['short_furry','long_pointy_furry'],
+	otter = ['short_furry'],
+	bird = ['feathery'],
+	avali = ['avali'],
+}
+
+var wingsdict = {
+	human = ['none'],
+	"fairy" : ['insect', 'gossamer'], #Added 'gossamer' wing type
+	"demon" : ['leather_black', 'leather_red'],
+	"dragonkin" : ['leather_black', 'leather_red','leather_blue','leather_white','leather_green',],
+	"seraph" : ['feathered_black', 'feathered_white', 'feathered_brown'],
+	"beastkin bird" : ['feathered_black', 'feathered_white', 'feathered_brown'],
+	"halfkin bird" : ['feathered_black', 'feathered_white', 'feathered_brown'],
+}
+
+var furcolordict = {
+	"human" : ['none'],
+	"beastkin cat" : ['white', 'gray', 'orange_white','black_white','black_gray','black'],
+	"beastkin fox" : ['black_white', 'orange'],
+	"beastkin wolf" : ['gray', 'black_gray', 'brown'],
+	"beastkin bunny" : ['white', 'gray'],
+	"beastkin tanuki" : ['black_gray'],
+	"beastkin mouse" : ['white', 'gray', 'brown', 'black'],
+	"beastkin squirrel" : ['white', 'gray', 'brown', 'black'],
+	"beastkin otter" : ['white', 'gray', 'brown', 'black'],
+	"avali" : ['white', 'gray', 'orange_white','black_white','black_gray','black'], 
+	"gnoll" : ['gray', 'brown','black_white','black_gray','black']
+}
+
 ###---Added by Expansion---### Player Expanded | Added new Hobby
 var hobbydescription = {
 	'Physical' : '[color=aqua]+1 Max Strength, +25 Courage[/color]\n\n$name is no stranger to fighting and tends to act boldly in many situations.',
 	'Etiquette' : "[color=aqua]+20 Confidence, +15 Charm[/color]\n\n$name has spent $his youth among elderly people and high society, learning how to be liked and present $himself while also feeling superior to commonfolk.",
 	'Graceful' : "[color=aqua]+1 Max Agility, +10 Confidence[/color]\n\n$name was the fastest kid $he knew growing up and a natural when it came to hand-eye coordination in general.", #ralph3
-	'Magic' : "[color=aqua]+" + str(globals.expansionsettings.magic_hobby_maf_max) + " Max Magic, +25 Wit[/color]\n\n$name was a very curious child and spent a lot of $his time reading and studying various things, including magic.", #ralph3
+	'Magic' : "[color=aqua]+{maf} Max Magic, +25 Wit[/color]\n\n$name was a very curious child and spent a lot of $his time reading and studying various things, including magic.", #ralph3
 	'Servitude' : "[color=aqua]+1 Max Endurance, +35 Min Obedience, +20 Loyalty[/color]\n\n$name has spent $his youth in harsh training which lead to $him being more physically fit and respecting to $his superiors.",
 	'Curious' : "[color=aqua]Start with the [color=green]Gifted[/color] trait.[/color]\n\n$name spends $his time searching for answers and meaning in this crazy world. This has led $him to become more receptive to new skills and knowledge.",
 	'Genius' : "[color=aqua]Start with the [color=green]Clever[/color] trait and randomly either the [color=green]Responsive[/color] or [color=green]Gifted[/color] trait.[/color]\n[color=red]Gains either the Clumsy, Frail, or Weak trait.[/color]\n\n$name spends $his time studying and thinking and tends to not focus on physical activities.\n",
 	'Socialite' : "[color=aqua]Start with the traits [color=green]Pretty Voice[/color] and either [color=green]Natural Beauty[/color] or [color=green]Ditzy[/color]. Gain [color=red]Fickle[/color].[/color]\n\n$name understands that the only real happiness in life comes from being popular and now even craves the attention from others.\n",
-	'Waifu' : "[color=aqua]Start with the traits [color=green]Monogamous[/color], [color=green]Fertile[/color], [color=green]Ascetic[/color], [color=red]Clingy[/color].\n\nStarts with the [color=green]Submissive[/color] fetish at [color=lime]Mindblowing[/color] and [color=green]Dominance[/color] at [color=red]Taboo[/color].[/color]\n\n$name has spent $his whole life preparing $himself to be the perfect, submissive partner.\n\n[color=yellow]Very Unbalanced[/color]\n",
+	'Waifu' : "[color=aqua]Start with the traits [color=green]Monogamous[/color], [color=green]Fertile[/color], [color=green]Ascetic[/color], and [color=red]Clingy[/color].\n\nStarts with the [color=green]Submissive[/color] fetish at [color=lime]Mindblowing[/color] and [color=green]Dominance[/color] at [color=red]Taboo[/color].[/color]\n\n$name has spent $his whole life preparing $himself to be the perfect, submissive partner.\n\n[color=yellow]Very Unbalanced[/color]\n",
 	'Perfect Specimen' : "[color=aqua]Start with the traits [color=green]Strong[/color], [color=green]Quick[/color], [color=green]Robust[/color], and [color=green]Responsive[/color].[/color]\n\n$name has been perfectly crafted to be the perfect specimen of their race.\n\n[color=red]Insanely Unbalanced[/color]\n"
 }
+
+<AddTo 7>
+func _ready():
+	###---Added by Expansion---###
+	globals.useRalphsTweaks = globals.expansionsettings.use_ralphs_tweaks
+	globals.useCapsTweaks = globals.expansionsettings.use_caps_tweaks
+	if globals.useRalphsTweaks:
+		globals.expansionsettings.applyRalphsTweaks()
+	if globals.useCapsTweaks:
+		globals.expansionsettings.applyCapitulizeTweaks()
+
+func _slave_hobby(button):
+	for i in get_tree().get_nodes_in_group("slavehobby"):
+		if i != button:
+			i.set_pressed(false)
+		else:
+			i.set_pressed(true)
+	startSlaveHobby = button.get_meta('hobby')
+	get_node("TextureFrame/newgame/stage8/backgroundtext").set_bbcode(startSlave.dictionary(hobbydescription[startSlaveHobby].format({"maf":str(globals.expansionsettings.magic_hobby_maf_max)})))
 
 #Provides a container for Additional Hobbies
 var slaveHobbiesExpanded = ['Graceful','Curious','Genius','Socialite','Waifu','Perfect Specimen'] #ralph3
 ###---Expansion End---###
+
+<AddTo -1>
+func _ready():
+	if globals.useCapsTweaks:
+		eardict.dragonkin = ['short_reptilian','pointy', 'frilled','none','long_round_reptilian','long_droopy_reptilian','long_pointy_reptilian']
+		skindict.dragonkin = ['none']
+
 
 #Added Penis Sizes
 #QMod - Incompletely modified, a bit more random now, does not fully implement choice consequences 'properly'
@@ -52,7 +187,7 @@ func _on_quickstart_pressed():
 	
 	slaveDefaults.age = globals.randomfromarray(ageArray)
 	slaveDefaults.sex = 'random'
-	startSlave = globals.newslave(slaveDefaults.race, slaveDefaults.age, slaveDefaults.sex, 'poor')	
+	startSlave = globals.newslave(slaveDefaults.race, slaveDefaults.age, slaveDefaults.sex, 'poor', 'startslave') ###---Added by Expansion---### new arg unique
 	player.imagefull = null
 	player.imageportait = playerPortraits[randi()%playerPortraits.size()]
 	startSlave.cleartraits()
@@ -93,6 +228,28 @@ func _stage5():
 			get_node("TextureFrame/newgame/stage5/age").select(get_node("TextureFrame/newgame/stage5/age").get_item_count()-1)
 
 	_update_stage5()
+
+func regenerateplayer():
+	var imageportait = player.imageportait
+	player = globals.newslave(player.race, player.age, player.sex, 'slave', 'player')###---Added by Expansion---### new arg unique
+	globals.player = player
+	player.cleartraits()
+	#player.unique = 'player'
+	player.imageportait = imageportait
+	player.imagefull = null
+	player.beautybase = variables.playerstartbeauty
+	playerBonusStatPoints = variables.playerbonusstatpoint
+	for i in ['str','agi','maf','end']:
+		player.stats[i+'_max'] = 4
+	_update_stage5()
+
+
+func regenerateslave():
+	var memory = startSlave.memory
+	startSlave = globals.newslave(startSlave.race, startSlave.age, startSlave.sex, 'poor', 'startslave') ###---Added by Expansion---### new arg unique
+	startSlave.unique = 'startslave' #ralphE - needed for my quickfix to allow startslave hybrid race to be set
+	startSlave.memory = memory
+	startSlave.beautybase = variables.characterstartbeauty
 
 #QMod - Patch fix for women/futa to have womb == true
 func _on_sexconfirm_pressed():
@@ -186,6 +343,48 @@ func _process_stage6_body_options():
 		stage6.get_node("horns").add_item(i.replace("_", " "))
 		if makeoverPerson.horns == i:
 			stage6.get_node("horns").select(stage6.get_node("horns").get_item_count()-1)
+			
+	# Capitulize: Process Scale Color
+	var scaleTypes
+	if scaledict.has(makeoverPerson.race.to_lower()):
+		scaleTypes = scaledict[makeoverPerson.race.to_lower()]
+		get_node("TextureFrame/newgame/stage6/scalecolor").set_disabled(false)
+	else:
+		scaleTypes = scaledict.human
+		get_node("TextureFrame/newgame/stage6/scalecolor").set_disabled(true)
+	for i in scaleTypes:
+		get_node("TextureFrame/newgame/stage6/scalecolor").add_item(i.replace("_", " "))
+		if makeoverPerson.scalecolor == i:
+			get_node("TextureFrame/newgame/stage6/scalecolor").select(get_node("TextureFrame/newgame/stage6/scalecolor").get_item_count()-1)
+			
+	#Process feather color
+	var featherTypes
+	if feathercolordict.has(makeoverPerson.race.to_lower()):
+		featherTypes = feathercolordict[makeoverPerson.race.to_lower()]
+		get_node("TextureFrame/newgame/stage6/feathercolor").set_disabled(false)
+	else:
+		featherTypes = feathercolordict.human
+		get_node("TextureFrame/newgame/stage6/feathercolor").set_disabled(true)
+	for i in featherTypes:
+		get_node("TextureFrame/newgame/stage6/feathercolor").add_item(i.replace("_", " "))
+		if makeoverPerson.feathercolor == i:
+			get_node("TextureFrame/newgame/stage6/feathercolor").select(get_node("TextureFrame/newgame/stage6/feathercolor").get_item_count()-1)
+
+	#Process ears
+	var earTypes
+	if eardict.has(makeoverPerson.race.to_lower().replace("beastkin ", "").replace("halfkin ", "")):
+		earTypes = eardict[makeoverPerson.race.to_lower().replace("beastkin ", "").replace("halfkin ", "")]
+		if earTypes.size() > 1:
+			get_node("TextureFrame/newgame/stage6/ears").set_disabled(false)
+		else:
+			get_node("TextureFrame/newgame/stage6/ears").set_disabled(true)
+	else:
+		earTypes = ['Human']
+		get_node("TextureFrame/newgame/stage6/ears").set_disabled(true)
+	for i in earTypes:
+		get_node("TextureFrame/newgame/stage6/ears").add_item(i.replace("_", " "))
+		if makeoverPerson.ears == i:
+			get_node("TextureFrame/newgame/stage6/ears").select(get_node("TextureFrame/newgame/stage6/ears").get_item_count()-1)
 
 	#Process wings
 	var wingTypes
@@ -242,6 +441,17 @@ func _process_stage6_body_options():
 		stage6.get_node("vagina").add_item('none')
 
 	###---End Expansion---###
+
+#QMod - Refactor
+func _process_stage6_locked_options():
+	#Set & lock immutable features
+	get_node("TextureFrame/newgame/stage6/bodyshape").set_disabled(true)
+	get_node("TextureFrame/newgame/stage6/bodyshape").add_item(makeoverPerson.bodyshape)
+	get_node("TextureFrame/newgame/stage6/tail").set_disabled(true)
+	get_node("TextureFrame/newgame/stage6/tail").add_item(makeoverPerson.tail)
+	get_node("TextureFrame/newgame/stage6/penistype").add_item(makeoverPerson.penistype)
+	get_node("TextureFrame/newgame/stage6/penistype").set_disabled(true)	
+	get_node("TextureFrame/newgame/stage6/penistype").set_disabled(true)
 
 func _update_stage6():
 	###---Added by Expansion---### Quick Strip
@@ -385,7 +595,7 @@ func _on_slaveconfirm_pressed():
 
 	#Generate mental stats
 	for i in ['conf','cour','wit','charm']:
-		startSlave[i] = rand_range(30,35)
+		startSlave.stats[i+'_base'] = rand_range(30,35)
 	startSlave.obed = 90
 	startSlave.beautybase = variables.characterstartbeauty
 	if startSlave.memory.find('$sibling') >= 0:
@@ -453,18 +663,16 @@ func _on_slaveconfirm_pressed():
 	if slaveTrait != '':
 		startSlave.add_trait(slaveTrait)
 
-	#Assign start slave to global slave list
 	startSlave.unique = 'startslave'
-	###---Added by Expansion---### Ovulation Cycle/Genealogy
-	#Test Assign
-	globals.constructor.set_genealogy(startSlave)
-	globals.constructor.forceFullblooded(startSlave)
-	globals.constructor.setRaceDisplay(startSlave)
-	globals.constructor.set_ovulation(startSlave)
-	###---End Expansion---###
+
 	###---Added by Expansion---### Ank Bugfix v4
 	startSlave.health = 1000
 	###---End Expansion---###
+
+	globals.expansion.updatePerson(startSlave)
+	if globals.state.relativesdata.has(startSlave.id):
+		globals.state.relativesdata[startSlave.id].name = startSlave.name_long()
+	#Assign start slave to global slave list
 	globals.slaves = startSlave #A bit deceptive as it assigns 'person' to 'array', works because of 'setget'
 
 
@@ -548,19 +756,12 @@ func _on_slaveconfirm_pressed():
 
 	###---Added by Expansion---### Reset resources
 
-
-	###---Added by Expansion---### Pregnancy Expanded | Ovulation Cycle/Genealogy
-	#Test Assign
-	globals.constructor.set_genealogy(player)
-	globals.constructor.forceFullblooded(player)
-	globals.constructor.setRaceDisplay(player)
-	globals.constructor.set_ovulation(player)
-	globals.expansion.updatePerson(player)
-	###---End Expansion---###
 	player.health = 1000
 	globals.player = player
-	###---Added by Expansion---### Ovulation Cycle/Genealogy
+	###---Added by Expansion---###
 	globals.expansion.updatePerson(globals.player)
+	if globals.state.relativesdata.has(globals.player.id):
+		globals.state.relativesdata[globals.player.id].name = globals.player.name_long()
 	###---End Expansion---###
 	globals.state.upcomingevents.append({code = 'ssinitiate', duration = 1})
 	#Change scene to game start 'Mansion'
